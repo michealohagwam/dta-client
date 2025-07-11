@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Logout | DailyTask Academy</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body data-page="logout">
+  <div id="global-notification" class="notification" style="display: none;"></div>
+  <!-- HEADER -->
+  <header class="navbar">
+    <div class="logo">
+      <a href="index.html">DailyTask Academy</a>
+    </div>
+    <nav class="nav-menu">
+      <div class="user-profile" id="user-dropdown">
+        <i class="fas fa-user-circle"></i>
+        <span id="header-user-name">Welcome, User</span>
+        <div class="user-dropdown">
+          <a href="profile.html">Profile</a>
+          <a href="logout.html" class="logout">Logout</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="auth-form">
+    <h1>Logout</h1>
+    <p>Are you sure you want to log out?</p>
+    <form id="logout-form" class="withdraw-form">
+      <div class="form-group">
+        <button type="submit" class="btn cta-btn">Confirm Logout</button>
+      </div>
+    </form>
+    <div id="logout-notification" class="notification"></div>
+    <p><a href="dashboard.html" id="return-dashboard">Return to Dashboard</a></p>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© <span id="current-year">2025</span> DailyTask Academy. All rights reserved.</p>
+    <p><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms & Conditions</a> | <a href="disclaimer.html">Disclaimer</a></p>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h2>Email Verification</h2>
+    <p id="verify-message">Verifying your email...</p>
+    <script>
+        const token = new URLSearchParams(window.location.search).get('token');
+        fetch(`http://localhost:5000/api/auth/verify-email/${token}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('verify-message').textContent = data.message;
+                if (response.ok) {
+                    setTimeout(() => window.location.href = 'login.html', 3000);
+                }
+            })
+            .catch(error => {
+                document.getElementById('verify-message').textContent = 'Error verifying email';
+            });
+    </script>
+    <script src="/js/main.js"></script>
+</body>
+</html>

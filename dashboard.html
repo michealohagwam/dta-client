@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Dashboard | DailyTask Academy</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body data-page="dashboard">
+    <div id="global-notification" class="notification" style="display: none;"></div>
+    <!-- HEADER -->
+    <header class="navbar">
+        <div class="logo">
+            <a href="index.html">DailyTask Academy</a>
+        </div>
+        <nav class="nav-menu">
+            <div class="user-profile" id="user-dropdown">
+                <i class="fas fa-user-circle"></i>
+                <span id="header-user-name">Welcome, User</span>
+                <div class="user-dropdown">
+                    <a href="profile.html">Profile</a>
+                    <a href="logout.html" class="logout">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-bars sidebar-toggle"></i> <span>Dashboard Menu</span></h2>
+                <div class="user-info">
+                    <img src="https://via.placeholder.com/50" alt="User Avatar" id="sidebar-user-avatar" />
+                    <div>
+                        <span id="sidebar-user-name">User Name</span>
+                        <span id="sidebar-user-level">Level 1</span>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="dashboard.html" class="active"><i class="fas fa-tasks"></i> <span>Tasks</span></a>
+                <a href="balance.html"><i class="fas fa-wallet"></i> <span>Balance</span></a>
+                <a href="referrals.html"><i class="fas fa-users"></i> <span>Referrals</span></a>
+                <a href="upgrade.html"><i class="fas fa-level-up-alt"></i> <span>Upgrade</span></a>
+                <a href="withdraw.html"><i class="fas fa-money-check-alt"></i> <span>Withdraw</span></a>
+                <a href="profile.html"><i class="fas fa-user"></i> <span>Profile</span></a>
+                <a href="transactions.html"><i class="fas fa-exchange-alt"></i> <span>Transactions</span></a>
+                <a href="logout.html" class="logout"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="balance-card">
+                <i class="fas fa-wallet"></i>
+                <div>
+                    <h3>Account Balance</h3>
+                    <p class="balance-amount" id="available-balance">₦0.00</p>
+                </div>
+            </div>
+            <div class="dashboard-header">
+                <h1>Your Daily Task</h1>
+                <div class="task-status">
+                    <span class="status-badge pending" id="task-status">Task Pending</span>
+                </div>
+            </div>
+            <p>Watch the video below completely and click "Complete Task" to earn ₦300. Hurry, task resets daily!</p>
+            <div class="countdown-timer" id="countdown-timer">Time remaining: 00:00:00</div>
+            <div class="task-box">
+                <div id="youtube-player"></div>
+                <button class="btn cta-btn" id="complete-task-btn" disabled>Complete Task</button>
+            </div>
+            <div id="task-notification" class="notification"></div>
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>© <span id="current-year">2025</span> DailyTask Academy. All rights reserved.</p>
+        <p><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms & Conditions</a> | <a href="disclaimer.html">Disclaimer</a></p>
+    </footer>
+    
+    <script src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Deposit | DailyTask Academy</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body data-page="deposit">
+  <div id="global-notification" class="notification" style="display: none;"></div>
+  <!-- HEADER -->
+  <header class="navbar">
+    <div class="logo">
+      <a href="index.html">DailyTask Academy</a>
+    </div>
+    <div class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <nav class="nav-menu">
+      <a href="login.html">Login</a>
+    </nav>
+  </header>
+
+  <div class="auth-form">
+    <h1>Complete Payment</h1>
+    <p id="payment-details"><span id="action"></span> <span id="amount"></span> for <span id="level"></span></p>
+    <div class="payment-instructions">
+      <h2>Payment Instructions</h2>
+      <p>Please transfer the exact amount to the following Admin bank account:</p>
+      <ul>
+        <li><strong>Bank Name:</strong> OPay</li>
+        <li><strong>Account Number:</strong> 9011611564</li>
+        <li><strong>Account Name:</strong> OHAGWAM MICHEAL O.</li>
+        <li><strong>REFERENCE:</strong> DailyTask Academy Registration Fee</li>
+      </ul>
+      <p>After making the transfer, click the button below to confirm your payment or contact us with proof of payment. <b>Payment details must match name on your profile.</b> Our team will verify your payment and initiate the registration process.</p>
+    </div>
+    <form id="payment-form" class="withdraw-form">
+      <div class="form-group">
+        <button type="submit" class="btn cta-btn"><i class="fas fa-check"></i> Confirm Payment</button>
+        <a href="index.html" class="btn btn-secondary"><i class="fas fa-times"></i> Cancel</a>
+      </div>
+    </form>
+    <div id="payment-notification" class="notification"></div>
+    <p>Payments will soon be powered by <a href="https://paystack.com" target="_blank" rel="noopener">Paystack</a> or <a href="https://flutterwave.com" target="_blank" rel="noopener">Flutterwave</a></p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© <span id="current-year">2025</span> DailyTask Academy. All rights reserved.</p>
+    <p><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms & Conditions</a> | <a href="disclaimer.html">Disclaimer</a></p>
+  </footer>
+
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

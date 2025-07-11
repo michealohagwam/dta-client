@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - DailyTask Academy</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body data-page="login">
+  <!-- HEADER -->
+  <header class="navbar">
+    <div class="logo">
+      <a href="index.html">DailyTask Academy</a>
+    </div>
+    <div class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <nav class="nav-menu">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="join.html">Join</a>
+      <a href="faq.html">FAQs</a>
+      <a href="login.html" class="btn">Login</a>
+    </nav>
+  </header>
+
+  <section class="auth-form">
+    <h1>Login</h1>
+    <form id="login-form" class="withdraw-form">
+      <div class="form-group">
+        <input type="email" id="login-email" placeholder="Email" required />
+      </div>
+      <div class="form-group">
+        <input type="password" id="login-password" placeholder="Password" required />
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn cta-btn">Login</button>
+      </div>
+      <p><a href="forgotten_password.html" id="forgot-password">Forgot Password?</a></p>
+    </form>
+    <div id="login-notification" class="notification"></div>
+    <p>Don’t have an account? <a href="register.html">Register here</a></p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© <span id="current-year">2025</span> DailyTask Academy. All rights reserved.</p>
+    <p><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms & Conditions</a> | <a href="disclaimer.html">Disclaimer</a></p>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>

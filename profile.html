@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile & Payments | DailyTask Academy</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+</head>
+<body data-page="profile">
+  <div id="global-notification" class="notification" style="display: none;"></div>
+  <!-- HEADER -->
+  <header class="navbar">
+    <div class="logo">
+      <a href="index.html">DailyTask Academy</a>
+    </div>
+    <nav class="nav-menu">
+      <div class="user-profile" id="user-dropdown">
+        <i class="fas fa-user-circle"></i>
+        <span id="header-user-name">Welcome, User</span>
+        <div class="user-dropdown">
+          <a href="profile.html">Profile & Payments</a>
+          <a href="logout.html" class="logout">Logout</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Dashboard Layout -->
+  <div class="dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2><i class="fas fa-bars sidebar-toggle"></i> <span>Dashboard Menu</span></h2>
+        <div class="user-info">
+          <img src="https://via.placeholder.com/50" alt="User Avatar" id="sidebar-user-avatar" />
+          <div>
+            <span id="sidebar-user-name">Micheal Ohagwam</span>
+            <span id="sidebar-user-level">Level 1</span>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-menu">
+        <a href="dashboard.html"><i class="fas fa-tasks"></i> <span>Tasks</span></a>
+        <a href="balance.html"><i class="fas fa-wallet"></i> <span>Balance</span></a>
+        <a href="referrals.html"><i class="fas fa-users"></i> <span>Referrals</span></a>
+        <a href="upgrade.html"><i class="fas fa-level-up-alt"></i> <span>Upgrade</span></a>
+        <a href="withdraw.html"><i class="fas fa-money-check-alt"></i> <span>Withdraw</span></a>
+        <a href="profile.html" class="active"><i class="fas fa-user"></i> <span>Profile & Payments</span></a>
+        <a href="transactions.html" class="active"><i class="fas fa-exchange-alt"></i> <span>Transactions</span></a>
+        <a href="logout.html" class="logout"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Profile Details Section -->
+      <section class="profile-details">
+        <h2>Your Profile</h2>
+        <div class="profile-card">
+          <div class="profile-item">
+            <i class="fas fa-user-tag"></i>
+            <div>
+              <span class="label">Username</span>
+              <span class="value" id="profile-username">micheal_ohagwam</span>
+            </div>
+          </div>
+          <div class="profile-item">
+            <i class="fas fa-user"></i>
+            <div>
+              <span class="label">Full Name</span>
+              <span class="value" id="profile-fullname">Micheal Ohagwam</span>
+            </div>
+          </div>
+          <div class="profile-item">
+            <i class="fas fa-envelope"></i>
+            <div>
+              <span class="label">Email</span>
+              <span class="value" id="profile-email">youremail@example.com</span>
+            </div>
+          </div>
+          <div class="profile-item">
+            <i class="fas fa-phone"></i>
+            <div>
+              <span class="label">Phone</span>
+              <span class="value" id="profile-phone">08123456789</span>
+            </div>
+          </div>
+          <div class="profile-item">
+            <i class="fas fa-bank"></i>
+            <div>
+              <span class="label">Withdrawal Bank Account</span>
+              <span class="value" id="profile-bank">Access Bank - 1234567890</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Update Profile Section -->
+      <section class="update-profile">
+        <h2>Update Profile</h2>
+        <p>Set your username and withdrawal bank account details. This can only be set once.</p>
+        <form class="profile-form" id="profile-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="Enter username" required />
+          </div>
+          <div class="form-group">
+            <label for="bank-name">Bank Name</label>
+            <input type="text" id="bank-name" placeholder="e.g. Access Bank" required />
+          </div>
+          <div class="form-group">
+            <label for="account-number">Account Number</label>
+            <input type="text" id="account-number" placeholder="Enter account number" required />
+          </div>
+          <button type="submit" class="btn cta-btn">Set Profile Details</button>
+        </form>
+        <div id="profile-notification" class="notification"></div>
+      </section>
+
+      <!-- KYC Verification Section -->
+      <!-- <section class="kyc-section">
+        <h2>KYC Verification</h2>
+        <p>Submit a government-approved document to verify your identity.</p>
+        <div class="kyc-status">
+          <span id="kyc-status" class="status-badge pending">Pending Verification</span>
+        </div>
+        <form class="kyc-form" id="kyc-form">
+          <div class="form-group">
+            <label for="document-type">Document Type</label>
+            <select id="document-type" required>
+              <option value="" disabled selected>Select document type</option>
+              <option value="passport">International Passport</option>
+              <option value="drivers-license">Driver's License</option>
+              <option value="national-id">National ID Card</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="document-upload">Upload Document</label>
+            <input type="file" id="document-upload" accept=".pdf,.jpg,.png" required />
+          </div>
+          <button type="submit" class="btn cta-btn">Submit KYC</button>
+        </form>
+        <div id="kyc-notification" class="notification"></div>
+      </section>
+       -->
+
+      <!-- Security Settings Section -->
+      <section class="security-settings">
+        <h2>Security Settings</h2>
+        <p>Update your password or manage two-factor authentication.</p>
+        <form class="security-form" id="security-form">
+          <div class="form-group">
+            <label for="new-password">New Password</label>
+            <input type="password" id="new-password" placeholder="Enter new password" />
+          </div>
+          <div class="form-group">
+            <label for="2fa-toggle">Two-Factor Authentication (2FA)</label>
+            <label class="switch">
+              <input type="checkbox" id="2fa-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <button type="submit" class="btn cta-btn">Update Security</button>
+        </form>
+        <div id="security-notification" class="notification"></div>
+      </section>
+
+      <!-- Payment Methods Section -->
+      <section class="payment-methods">
+        <h2>Payment Methods</h2>
+        <p>Manage your payment methods for withdrawals.</p>
+        <div id="payment-methods-list"></div>
+        <button class="btn cta-btn" id="add-payment-method">Add Payment Method</button>
+        <div id="payment-notification" class="notification"></div>
+      </section>
+
+      <!-- Withdrawal Request Section -->
+      <section class="withdrawal-request">
+        <h2>Request Withdrawal</h2>
+        <form id="withdrawal-form" class="withdraw-form">
+          <div class="form-group">
+            <label for="withdrawal-method">Select Payment Method</label>
+            <select id="withdrawal-method" required>
+              <option value="" disabled selected>Select a method</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="withdrawal-amount">Amount (₦)</label>
+            <input type="number" id="withdrawal-amount" placeholder="Enter amount" required />
+          </div>
+          <button type="submit" class="btn cta-btn">Request Withdrawal</button>
+        </form>
+        <div id="withdrawal-notification" class="notification"></div>
+        <p>Minimum withdrawal amount: ₦3,000 | Processing fee: 1.5% | Estimated processing time: 3-5 business days</p>
+      </section>
+
+      <!-- Payout Rules Section -->
+      <section class="payout-rules">
+        <h2>Payout Rules</h2>
+        <ul>
+          <li>Minimum withdrawal amount is ₦3,000.</li>
+          <li>A processing fee of 1.5% is applied to each withdrawal.</li>
+          <li>Withdrawals are processed within 3-5 business days.</li>
+          <li>Ensure your payment method is verified before requesting a withdrawal.</li>
+        </ul>
+      </section>
+
+      <!-- Transaction History Section -->
+      <section class="transaction-history">
+        <h2>Transaction History</h2>
+        <p>View your recent transactions, including earnings, withdrawals, and referrals.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="transaction-history-table"></tbody>
+        </table>
+        <a href="transactions.html" class="btn">View All Transactions</a>
+      </section>
+
+      <!-- Referral Stats Section -->
+      <section class="referral-stats">
+        <h2>Referral Stats</h2>
+        <p>Track your referral progress.</p>
+        <div class="referral-card">
+          <div class="referral-item">
+            <i class="fas fa-users"></i>
+            <div>
+              <span class="label">Total Referrals</span>
+              <span class="value" id="referral-count">5</span>
+            </div>
+          </div>
+          <div class="referral-item">
+            <i class="fas fa-coins"></i>
+            <div>
+              <span class="label">Referral Earnings</span>
+              <span class="value" id="referral-earnings">₦500</span>
+            </div>
+          </div>
+        </div>
+        <a href="referrals.html" class="btn">View Referral Details</a>
+      </section>
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© <span id="current-year">2025</span> DailyTask Academy. All rights reserved.</p>
+    <p><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms & Conditions</a> | <a href="disclaimer.html">Disclaimer</a></p>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>
