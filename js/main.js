@@ -1056,128 +1056,139 @@ function initRegisterPage() {
     }
   }
 
-    // Handle referral link from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const refLink = urlParams.get('ref');
-    if (refLink && document.getElementById('signup-referral')) {
-        document.getElementById('signup-referral').value = `https://dailytaskacademy.com/ref/${refLink}`;
-    }
+  // Handle referral link from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const refLink = urlParams.get('ref');
+  if (refLink && document.getElementById('signup-referral')) {
+    document.getElementById('signup-referral').value = `https://dailytaskacademy.com/ref/${refLink}`;
+  }
 
-    // Check username availability
-    async function checkUsername(username) {
-        if (!username) return false;
-        try {
-            const response = await fetch(`${API_URL}/api/users/check-username?username=${encodeURIComponent(username)}`);
-            if (!response.ok) throw new Error('Failed to check username');
-            const data = await response.json();
-            return data.available;
-        } catch (err) {
-            console.error('Error checking username:', err);
-            return false;
-        }
-    }
-
-    // Debounce function to limit API calls during username input
-    function debounce(func, delay) {
-        let timeoutId;
-        return function (...args) {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => func.apply(this, args), delay);
-        };
-    }
-
-    if (usernameInput && usernameError) {
-        const validateUsername = debounce(async (username) => {
-            if (!username) {
-                usernameError.style.display = 'none';
-                return;
-            }
-            const isAvailable = await checkUsername(username);
-            usernameError.style.display = isAvailable ? 'none' : 'block';
-        }, 300);
-        usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
-    }
-
-    // form submission
-if (registerForm && notification) {
-  registerForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const submitBtn = registerForm.querySelector('button');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Registering...';
-
-    const name = document.getElementById('signup-name')?.value.trim();
-    const username = document.getElementById('signup-username')?.value.trim();
-    const email = document.getElementById('signup-email')?.value.trim();
-    const phone = document.getElementById('signup-phone')?.value.trim();
-    const password = document.getElementById('signup-password')?.value;
-    const referralCode = document.getElementById('signup-referral')?.value.trim();
-    const level = parseInt(document.getElementById('signup-level')?.value);
-    const amount = level ? 15000 * Math.pow(2, level - 1) : 0;
-
-    if (!name || !username || !email || !phone || !password || !level) {
-      notification.textContent = 'Please fill in all required fields.';
-      notification.classList.add('error');
-      notification.style.display = 'block';
-      setTimeout(() => {
-        notification.style.display = 'none';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-      }, 3000);
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      notification.textContent = 'Please enter a valid email address.';
-      notification.classList.add('error');
-      notification.style.display = 'block';
-      setTimeout(() => {
-        notification.style.display = 'none';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-      }, 3000);
-      return;
-    }
-
-    const isUsernameAvailable = await checkUsername(username);
-    if (!isUsernameAvailable) {
-      usernameError.style.display = 'block';
-      notification.textContent = 'Username already taken. Please choose another.';
-      notification.classList.add('error');
-      notification.style.display = 'block';
-      setTimeout(() => {
-        notification.style.display = 'none';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-      }, 3000);
-      return;
-    } else {
-      usernameError.style.display = 'none';
-    }
-
+  // Check username availability
+  async function checkUsername(username) {
+    if (!username) return false;
     try {
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, username, email, phone, password, referralCode, level, amount })
-      });
+      const response = await fetch(`${API_URL}/api/users/check-username?username=${encodeURIComponent(username)}`);
+      if (!response.ok) throw new Error('Failed to check username');
+      const data = await response.json();
+      return data.available;
+    } catch (err) {
+      console.error('Error checking username:', err);
+      return false;
+    }
+  }
 
-      let data;
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        throw new Error('Server returned non-JSON response');
+  // Debounce function to limit API calls during username input
+  function debounce(func, delay) {
+    let timeoutId;
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+  }
+
+  if (usernameInput && usernameError) {
+    const validateUsername = debounce(async (username) => {
+      if (!username) {
+        usernameError.style.display = 'none';
+        return;
+      }
+      const isAvailable = await checkUsername(username);
+      usernameError.style.display = isAvailable ? 'none' : 'block';
+    }, 300);
+    usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
+  }
+
+  // Form submission
+  if (registerForm && notification) {
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = registerForm.querySelector('button');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Registering...';
+
+      const name = document.getElementById('signup-name')?.value.trim();
+      const username = document.getElementById('signup-username')?.value.trim();
+      const email = document.getElementById('signup-email')?.value.trim();
+      const phone = document.getElementById('signup-phone')?.value.trim();
+      const password = document.getElementById('signup-password')?.value;
+      const referralCode = document.getElementById('signup-referral')?.value.trim();
+      const level = parseInt(document.getElementById('signup-level')?.value);
+      const amount = level ? 15000 * Math.pow(2, level - 1) : 0;
+
+      if (!name || !username || !email || !phone || !password || !level) {
+        notification.textContent = 'Please fill in all required fields.';
+        notification.classList.add('error');
+        notification.style.display = 'block';
+        setTimeout(() => {
+          notification.style.display = 'none';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Register';
+        }, 3000);
+        return;
       }
 
-      if (response.ok) {
-        notification.textContent = `Registration successful! Please pay ₦${amount.toLocaleString()} for Level ${level} to activate your account.`;
-        notification.classList.add('success');
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        notification.textContent = 'Please enter a valid email address.';
+        notification.classList.add('error');
         notification.style.display = 'block';
-        setTimeout(() => window.location.href = 'deposit.html', 3000);
+        setTimeout(() => {
+          notification.style.display = 'none';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Register';
+        }, 3000);
+        return;
+      }
+
+      const isUsernameAvailable = await checkUsername(username);
+      if (!isUsernameAvailable) {
+        usernameError.style.display = 'block';
+        notification.textContent = 'Username already taken. Please choose another.';
+        notification.classList.add('error');
+        notification.style.display = 'block';
+        setTimeout(() => {
+          notification.style.display = 'none';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Register';
+        }, 3000);
+        return;
       } else {
-        notification.textContent = data.message || 'Registration failed.';
+        usernameError.style.display = 'none';
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, username, email, phone, password, referralCode, level, amount })
+        });
+
+        let data;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error('Server returned non-JSON response');
+        }
+
+        if (response.ok) {
+          notification.textContent = `Registration successful! Please pay ₦${amount.toLocaleString()} for Level ${level} to activate your account.`;
+          notification.classList.add('success');
+          notification.style.display = 'block';
+          setTimeout(() => window.location.href = 'deposit.html', 3000);
+        } else {
+          notification.textContent = data.message || 'Registration failed.';
+          notification.classList.add('error');
+          notification.style.display = 'block';
+          setTimeout(() => {
+            notification.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Register';
+          }, 3000);
+        }
+      } catch (err) {
+        console.error('Registration failed:', err);
+        notification.textContent = 'Server error. Please try again.';
         notification.classList.add('error');
         notification.style.display = 'block';
         setTimeout(() => {
@@ -1186,21 +1197,9 @@ if (registerForm && notification) {
           submitBtn.textContent = 'Register';
         }, 3000);
       }
-
-    } catch (err) {
-      console.error('Registration failed:', err);
-      notification.textContent = 'Server error. Please try again.';
-      notification.classList.add('error');
-      notification.style.display = 'block';
-      setTimeout(() => {
-        notification.style.display = 'none';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-      }, 3000);
-    }
-  });
-}
-
+    });
+  }
+} 
 
 // Upgrade Page initialization
 async function initUpgradePage() {
@@ -1760,4 +1759,4 @@ document.addEventListener('DOMContentLoaded', () => {
         verify: initVerifyEmailPage
     };
     if (pageInit[page]) pageInit[page]();
-});}
+});
