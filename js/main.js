@@ -1,6 +1,7 @@
 // Base URL for API requests
 const API_URL = 'https://dta-backend-clean.onrender.com';
 const socket = io(API_URL);
+console.log("✅ initRegisterPage is running");
 
 
 // Helper function to retrieve the JWT token from local storage
