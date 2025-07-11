@@ -1098,105 +1098,88 @@ function initRegisterPage() {
         usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
     }
 
-    // form submission
+    // ✅ Register form submission
 if (registerForm && notification) {
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const submitBtn = registerForm.querySelector('button');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Registering...';
 
+    // ✅ Get form data
     const name = document.getElementById('signup-name')?.value.trim();
     const username = document.getElementById('signup-username')?.value.trim();
     const email = document.getElementById('signup-email')?.value.trim();
     const phone = document.getElementById('signup-phone')?.value.trim();
     const password = document.getElementById('signup-password')?.value;
     const referralCode = document.getElementById('signup-referral')?.value.trim();
-    const level = parseInt(document.getElementById('signup-level')?.value);
-    const amount = level ? 15000 * Math.pow(2, level - 1) : 0;
+    const levelStr = document.getElementById('signup-level')?.value;
+    const level = parseInt(levelStr);
+    const amount = !isNaN(level) ? 15000 * Math.pow(2, level - 1) : 0;
 
-    if (!name || !username || !email || !phone || !password || !level) {
-      notification.textContent = 'Please fill in all required fields.';
-      notification.classList.add('error');
-      notification.style.display = 'block';
-      setTimeout(() => {
-        notification.style.display = 'none';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-      }, 3000);
+    // ✅ Validate fields
+    if (!name || !username || !email || !phone || !password || !levelStr) {
+      showNotification('Please fill in all required fields.', 'error');
+      resetButton();
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      notification.textContent = 'Please enter a valid email address.';
-      notification.classList.add('error');
-      notification.style.display = 'block';
-      setTimeout(() => {
-        notification.style.display = 'none';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-      }, 3000);
+      showNotification('Please enter a valid email address.', 'error');
+      resetButton();
       return;
     }
 
     const isUsernameAvailable = await checkUsername(username);
     if (!isUsernameAvailable) {
       usernameError.style.display = 'block';
-      notification.textContent = 'Username already taken. Please choose another.';
-      notification.classList.add('error');
-      notification.style.display = 'block';
-      setTimeout(() => {
-        notification.style.display = 'none';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-      }, 3000);
+      showNotification('Username already taken. Please choose another.', 'error');
+      resetButton();
       return;
     } else {
       usernameError.style.display = 'none';
     }
 
+    // ✅ Send to backend
     try {
       const response = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, username, email, phone, password, referralCode, level, amount })
+        body: JSON.stringify({ name, username, email, phone, password, referralCode, level, amount }),
       });
 
-      let data;
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        throw new Error('Server returned non-JSON response');
-      }
+      const contentType = response.headers.get('content-type');
+      const data = contentType?.includes('application/json') ? await response.json() : {};
 
       if (response.ok) {
-        notification.textContent = `Registration successful! Please pay ₦${amount.toLocaleString()} for Level ${level} to activate your account.`;
-        notification.classList.add('success');
-        notification.style.display = 'block';
-        setTimeout(() => window.location.href = 'deposit.html', 3000);
+        showNotification(
+          `🎉 Registration successful! Please pay ₦${amount.toLocaleString()} for Level ${level} to activate your account.`,
+          'success'
+        );
+        setTimeout(() => (window.location.href = 'deposit.html'), 3000);
       } else {
-        notification.textContent = data.message || 'Registration failed.';
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => {
-          notification.style.display = 'none';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Register';
-        }, 3000);
+        showNotification(data.message || 'Registration failed.', 'error');
+        resetButton();
       }
-
     } catch (err) {
-      console.error('Registration failed:', err);
-      notification.textContent = 'Server error. Please try again.';
-      notification.classList.add('error');
+      console.error('❌ Registration error:', err);
+      showNotification('Server error. Please try again.', 'error');
+      resetButton();
+    }
+
+    // ✅ Helpers
+    function showNotification(message, type = 'info') {
+      notification.textContent = message;
+      notification.className = `notification ${type}`;
       notification.style.display = 'block';
-      setTimeout(() => {
-        notification.style.display = 'none';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-      }, 3000);
+      setTimeout(() => (notification.style.display = 'none'), 5000);
+    }
+
+    function resetButton() {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Register';
     }
   });
 }
