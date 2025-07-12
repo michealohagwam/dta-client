@@ -1115,8 +1115,16 @@ function initRegisterPage() {
       const level = parseInt(document.getElementById('signup-level')?.value);
       const amount = level ? 15000 * Math.pow(2, level - 1) : 0;
 
+      // Enhanced validation
       if (!name || !username || !email || !phone || !password || !level) {
-        notification.textContent = 'Please fill in all required fields.';
+        notification.textContent = `Please fill in all required fields. Missing: ${[
+          !name && 'Name',
+          !username && 'Username',
+          !email && 'Email',
+          !phone && 'Phone',
+          !password && 'Password',
+          !level && 'Level'
+        ].filter(Boolean).join(', ')}.`;
         notification.classList.add('error');
         notification.style.display = 'block';
         setTimeout(() => {
@@ -1130,6 +1138,19 @@ function initRegisterPage() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         notification.textContent = 'Please enter a valid email address.';
+        notification.classList.add('error');
+        notification.style.display = 'block';
+        setTimeout(() => {
+          notification.style.display = 'none';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Register';
+        }, 3000);
+        return;
+      }
+
+      const phoneRegex = /^[0-9]{10,15}$/;
+      if (!phoneRegex.test(phone)) {
+        notification.textContent = 'Please enter a valid phone number (10-15 digits, numbers only).';
         notification.classList.add('error');
         notification.style.display = 'block';
         setTimeout(() => {
@@ -1157,6 +1178,7 @@ function initRegisterPage() {
       }
 
       try {
+        console.log('Sending signup payload:', { name, username, email, phone, password, referralCode, level, amount });
         const response = await fetch(`${API_URL}/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1199,8 +1221,7 @@ function initRegisterPage() {
       }
     });
   }
-} 
-
+}
 // Upgrade Page initialization
 async function initUpgradePage() {
     const token = getToken();
