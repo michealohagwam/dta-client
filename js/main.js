@@ -1060,7 +1060,7 @@ function initRegisterPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const refLink = urlParams.get('ref');
   if (refLink && document.getElementById('signup-referral')) {
-    document.getElementById('signup-referral').value = `https://dailytaskacademy.com/ref/${refLink}`;
+    document.getElementById('signup-referral').value = `https://dailytaskacademy.vercel.app/ref/${refLink}`;
   }
 
   // Check username availability
@@ -1116,9 +1116,10 @@ function initRegisterPage() {
       const amount = level ? 15000 * Math.pow(2, level - 1) : 0;
 
       // Enhanced validation
-      if (!name || !username || !email || !phone || !password || !level) {
+      if (!fullName || !username || !email || !phone || !password || !level) {
+        console.log('🚀 fullName:', fullName);
         notification.textContent = `Please fill in all required fields. Missing: ${[
-          !name && 'Name',
+          !fullName && 'Full Name',
           !username && 'Username',
           !email && 'Email',
           !phone && 'Phone',
