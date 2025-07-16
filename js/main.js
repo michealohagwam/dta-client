@@ -1106,7 +1106,7 @@ function initRegisterPage() {
       submitBtn.disabled = true;
       submitBtn.textContent = 'Registering...';
 
-      const name = document.getElementById('signup-name')?.value.trim();
+      const fullName = document.getElementById('signup-name')?.value.trim();
       const username = document.getElementById('signup-username')?.value.trim();
       const email = document.getElementById('signup-email')?.value.trim();
       const phone = document.getElementById('signup-phone')?.value.trim();
@@ -1182,7 +1182,7 @@ function initRegisterPage() {
         const response = await fetch(`${API_URL}/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, username, email, phone, password, referralCode, level, amount })
+          body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
         });
 
         let data;
@@ -1222,6 +1222,7 @@ function initRegisterPage() {
     });
   }
 }
+
 // Upgrade Page initialization
 async function initUpgradePage() {
     const token = getToken();
