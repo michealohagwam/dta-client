@@ -326,6 +326,7 @@ async function initDashboardPage() {
     const today = new Date().toISOString().split('T')[0];
     const taskCompleted = lastTaskDate === today;
     const notification = document.getElementById('task-notification');
+
     try {
         const response = await fetchJSON(`${API_URL}/api/users/profile`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -344,10 +345,28 @@ async function initDashboardPage() {
     }
 
     // Populate the user's available balance
-    function populateBalance() {
-        const balanceElement = document.getElementById('available-balance');
-        if (balanceElement) {
-            balanceElement.textContent = `₦${(user.balance?.available || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    async function populateBalance() {
+        try {
+            const response = await fetchJSON(`${API_URL}/api/users/balance`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const balance = await response.json();
+                const balanceElement = document.getElementById('available-balance');
+                if (balanceElement) {
+                    balanceElement.textContent = `₦${(balance.available || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+                }
+            } else {
+                throw new Error('Failed to fetch balance');
+            }
+        } catch (err) {
+            console.error('Error fetching balance:', err);
+            if (notification) {
+                notification.textContent = 'Error loading balance. Please try again.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
+            }
         }
     }
 
@@ -419,6 +438,7 @@ async function initDashboardPage() {
         }
     }
 
+    // Task completion event listener
     const taskButton = document.getElementById('complete-task-btn');
     if (taskButton && notification) {
         taskButton.addEventListener('click', async function(e) {
@@ -444,7 +464,7 @@ async function initDashboardPage() {
                 return;
             }
             try {
-                const response = await fetchJSON(`${API_URL}/api/users/tasks/complete`, {
+                const response = await fetchJSON(`${API_URL}/api/users/tasks`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ reward: 300 })
@@ -457,7 +477,7 @@ async function initDashboardPage() {
                     notification.style.display = 'block';
                     setTimeout(() => {
                         notification.style.display = 'none';
-                        taskButton.disabled = false;
+                        taskButton.disabled = true; // Keep disabled after success
                     }, 3000);
                     populateBalance();
                     updateTaskStatus();
@@ -465,6 +485,7 @@ async function initDashboardPage() {
                     throw new Error('Failed to complete task');
                 }
             } catch (err) {
+                console.error('Error completing task:', err);
                 notification.textContent = 'Error completing task. Please try again.';
                 notification.classList.add('error');
                 notification.style.display = 'block';
