@@ -533,6 +533,29 @@ async function initBalancePage() {
 }
 
 // Profile Page initialization
+// Utility function for fetching JSON responses with enhanced error handling
+async function fetchJSON(url, options) {
+    try {
+        const response = await fetch(url, options);
+        const contentType = response.headers.get('content-type');
+        if (!response.ok) {
+            const text = await response.text();
+            console.error(`Fetch failed for ${url}: Status ${response.status}, Response: ${text}`);
+            throw new Error(`HTTP error ${response.status}: ${text}`);
+        }
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error(`Non-JSON response from ${url}: Content-Type: ${contentType}, Response: ${text}`);
+            throw new Error('Server returned non-JSON response');
+        }
+        return response;
+    } catch (err) {
+        console.error(`Error fetching ${url}:`, err);
+        throw err;
+    }
+}
+
+// Profile Page initialization
 async function initProfilePage() {
     const token = getToken();
     if (!token) {
@@ -540,22 +563,57 @@ async function initProfilePage() {
         window.location.href = 'login.html';
         return;
     }
-    let user, paymentMethods, transactions, referralStats;
+    let user = null, paymentMethods = [], transactions = [], referralStats = { count: 0, earnings: 0 };
     const notification = document.getElementById('profile-notification');
+
+    // Fetch data with individual error handling
     try {
         const [profileRes, paymentRes, txRes, referralRes] = await Promise.all([
-            fetchJSON(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetchJSON(`${API_URL}/api/users/payment-methods`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetchJSON(`${API_URL}/api/users/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetchJSON(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .catch(err => ({ ok: false, error: err.message })),
+            fetchJSON(`${API_URL}/api/users/payment-methods`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .catch(err => ({ ok: false, error: err.message })),
+            fetchJSON(`${API_URL}/api/users/transactions`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .catch(err => ({ ok: false, error: err.message })),
             fetchJSON(`${API_URL}/api/users/referrals/stats`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .catch(err => ({ ok: false, error: err.message }))
         ]);
-        if (!profileRes.ok || !paymentRes.ok || !txRes.ok || !referralRes.ok) throw new Error('Failed to fetch profile data');
-        user = await profileRes.json();
-        paymentMethods = await paymentRes.json();
-        transactions = await txRes.json();
-        referralStats = await referralRes.json();
+
+        // Process each response individually
+        if (profileRes.ok) {
+            user = await profileRes.json();
+        } else {
+            console.error('Failed to fetch profile:', profileRes.error || 'Unknown error');
+        }
+
+        if (paymentRes.ok) {
+            paymentMethods = await paymentRes.json();
+        } else {
+            console.error('Failed to fetch payment methods:', paymentRes.error || 'Unknown error');
+        }
+
+        if (txRes.ok) {
+            transactions = await txRes.json();
+        } else {
+            console.error('Failed to fetch transactions:', txRes.error || 'Unknown error');
+        }
+
+        if (referralRes.ok) {
+            referralStats = await referralRes.json();
+        } else {
+            console.error('Failed to fetch referral stats:', referralRes.error || 'Unknown error');
+        }
+
+        // Check if critical data (user profile) is missing
+        if (!user && notification) {
+            notification.textContent = 'Error loading critical profile data. Please try again.';
+            notification.classList.add('error');
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 3000);
+            return;
+        }
     } catch (err) {
-        console.error('Error fetching profile data:', err);
+        console.error('Unexpected error in initProfilePage:', err);
         if (notification) {
             notification.textContent = 'Error loading profile data. Please try again.';
             notification.classList.add('error');
@@ -572,25 +630,25 @@ async function initProfilePage() {
         const profileEmail = document.getElementById('profile-email');
         const profilePhone = document.getElementById('profile-phone');
         const profileBank = document.getElementById('profile-bank');
-        if (profileUsername) profileUsername.textContent = user.username;
-        if (profileFullname) profileFullname.textContent = user.fullName;
-        if (profileEmail) profileEmail.textContent = user.email;
-        if (profilePhone) profilePhone.textContent = user.phone || 'N/A';
-        if (profileBank) profileBank.textContent = user.bank || 'N/A';
+        if (profileUsername) profileUsername.textContent = user?.username || 'N/A';
+        if (profileFullname) profileFullname.textContent = user?.fullName || 'N/A';
+        if (profileEmail) profileEmail.textContent = user?.email || 'N/A';
+        if (profilePhone) profilePhone.textContent = user?.phone || 'N/A';
+        if (profileBank) profileBank.textContent = user?.bank || 'N/A';
     }
 
     // Populate payment methods list and add edit/remove functionality
     function populatePaymentMethods() {
         const list = document.getElementById('payment-methods-list');
         if (list) {
-            list.innerHTML = '';
+            list.innerHTML = paymentMethods.length === 0 ? '<p>No payment methods available.</p>' : '';
             paymentMethods.forEach(method => {
                 const div = document.createElement('div');
                 div.className = 'payment-method';
                 div.innerHTML = `
-                    <p>${method.type}: ${method.type === 'Bank Account' ? `${method.bank} - ${method.accountNumber}` : method.email}</p>
-                    <button class="btn edit" data-id="${method.id}">Edit</button>
-                    <button class="btn remove" data-id="${method.id}">Remove</button>
+                    <p>${method.type}: ${method.type === 'Bank Account' ? `${method.details.bank} - ${method.details.accountNumber}` : method.details.email}</p>
+                    <button class="btn edit" data-id="${method._id}">Edit</button>
+                    <button class="btn remove" data-id="${method._id}">Remove</button>
                 `;
                 list.appendChild(div);
             });
@@ -607,14 +665,14 @@ async function initProfilePage() {
             });
             document.querySelectorAll('.payment-method .remove').forEach(btn => {
                 btn.addEventListener('click', async () => {
-                    const methodId = parseInt(btn.dataset.id);
+                    const methodId = btn.dataset.id;
                     try {
                         const response = await fetchJSON(`${API_URL}/api/users/payment-methods/${methodId}`, {
                             method: 'DELETE',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (response.ok) {
-                            paymentMethods = paymentMethods.filter(method => method.id !== methodId);
+                            paymentMethods = paymentMethods.filter(method => method._id !== methodId);
                             populatePaymentMethods();
                             populateWithdrawalMethods();
                             const notification = document.getElementById('payment-notification');
@@ -649,8 +707,8 @@ async function initProfilePage() {
             select.innerHTML = '<option value="" disabled selected>Select a method</option>';
             paymentMethods.forEach(method => {
                 const option = document.createElement('option');
-                option.value = method.id;
-                option.textContent = `${method.type} - ${method.type === 'Bank Account' ? method.accountNumber : method.email}`;
+                option.value = method._id;
+                option.textContent = `${method.type} - ${method.type === 'Bank Account' ? method.details.accountNumber : method.details.email}`;
                 select.appendChild(option);
             });
         }
@@ -660,15 +718,15 @@ async function initProfilePage() {
     function populateTransactionHistory() {
         const tbody = document.getElementById('transaction-history-table');
         if (tbody) {
-            tbody.innerHTML = '';
+            tbody.innerHTML = transactions.length === 0 ? '<tr><td colspan="5">No transactions found.</td></tr>' : '';
             transactions.forEach(transaction => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${transaction.date}</td>
-                    <td>${transaction.type}</td>
-                    <td>₦${Math.abs(transaction.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-                    <td>${transaction.description}</td>
-                    <td>${transaction.status}</td>
+                    <td>${transaction.date || 'N/A'}</td>
+                    <td>${transaction.type || 'Unknown'}</td>
+                    <td>₦${Math.abs(transaction.amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                    <td>${transaction.description || 'N/A'}</td>
+                    <td>${transaction.status || 'N/A'}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -679,13 +737,13 @@ async function initProfilePage() {
     function populateReferralStats() {
         const referralCount = document.getElementById('referral-count');
         const referralEarnings = document.getElementById('referral-earnings');
-        if (referralCount) referralCount.textContent = referralStats.count;
+        if (referralCount) referralCount.textContent = referralStats.count || 0;
         if (referralEarnings) referralEarnings.textContent = `₦${(referralStats.earnings || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
     }
 
     const profileForm = document.getElementById('profile-form');
     if (profileForm && notification) {
-        if (user.profileSet) {
+        if (user?.profileSet) {
             profileForm.querySelectorAll('input').forEach(input => input.disabled = true);
             profileForm.querySelector('button').disabled = true;
             notification.textContent = 'Profile details are set and cannot be changed.';
