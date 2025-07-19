@@ -1,4 +1,4 @@
-// Base URL for API requests
+// main.js
 const API_URL = 'https://dta-backend-clean.onrender.com';
 const socket = io(API_URL);
 
@@ -7,18 +7,26 @@ socket.on('connect_error', (err) => {
     console.error('Socket.IO connection error:', err);
 });
 
-console.log("✅ initRegisterPage is running");
-const token = localStorage.getItem('token');
-const notification = document.getElementById('referral-notification');
-
 // Utility function for fetching JSON responses
 async function fetchJSON(url, options) {
-    const response = await fetch(url, options);
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server returned non-JSON response');
+    try {
+        const response = await fetch(url, options);
+        const contentType = response.headers.get('content-type');
+        if (!response.ok) {
+            const text = await response.text();
+            console.error(`Fetch failed for ${url}: Status ${response.status}, Response: ${text}`);
+            throw new Error(`HTTP error ${response.status}: ${text}`);
+        }
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error(`Non-JSON response from ${url}: Content-Type: ${contentType}, Response: ${text}`);
+            throw new Error('Server returned non-JSON response');
+        }
+        return response;
+    } catch (err) {
+        console.error(`Error fetching ${url}:`, err);
+        throw err;
     }
-    return response;
 }
 
 // Helper function to retrieve the JWT token from local storage
@@ -82,8 +90,8 @@ async function updateUserInfo() {
             const sidebarUserName = document.getElementById('sidebar-user-name');
             const sidebarUserLevel = document.getElementById('sidebar-user-level');
             const sidebarUserAvatar = document.getElementById('sidebar-user-avatar');
-            if (headerUserName) headerUserName.textContent = `Welcome, ${user.name}`;
-            if (sidebarUserName) sidebarUserName.textContent = user.name;
+            if (headerUserName) headerUserName.textContent = `Welcome, ${user.fullName}`;
+            if (sidebarUserName) sidebarUserName.textContent = user.fullName;
             if (sidebarUserLevel) sidebarUserLevel.textContent = `Level ${user.level || 1}`;
             if (sidebarUserAvatar) sidebarUserAvatar.src = user.avatar || 'https://via.placeholder.com/50';
         } else {
@@ -106,7 +114,7 @@ async function initHomePage() {
             });
             if (response.ok) {
                 const user = await response.json();
-                welcomeMessage.textContent = `Welcome back, ${user.name}!`;
+                welcomeMessage.textContent = `Welcome back, ${user.fullName}!`;
                 welcomeMessage.style.display = 'block';
                 setTimeout(() => welcomeMessage.style.display = 'none', 3000);
             } else {
@@ -228,8 +236,8 @@ function initLoginPage() {
             e.preventDefault();
             const submitBtn = loginForm.querySelector('button');
             submitBtn.disabled = true;
-            const email = document.getElementById('login-email')?.value;
-            const password = document.getElementById('login-password')?.value;
+            const email = document.getElementById('login-email')?.value.trim();
+            const password = document.getElementById('login-password')?.value.trim();
 
             if (!email || !password) {
                 notification.textContent = 'Please fill all required fields';
@@ -243,7 +251,7 @@ function initLoginPage() {
             }
 
             try {
-                const response = await fetchJSON(`${API_URL}/api/auth/login`, {
+                const response = await fetchJSON(`${API_URL}/api/users/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -252,9 +260,9 @@ function initLoginPage() {
 
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
-                    if (data.user && data.user._id) {
-                        localStorage.setItem('userId', data.user._id);
-                        socket.emit('join-room', data.user._id);
+                    if (data.user && data.user.id) {
+                        localStorage.setItem('userId', data.user.id);
+                        socket.emit('join-room', data.user.id);
                     }
                     notification.textContent = 'Login successful!';
                     notification.classList.add('success');
@@ -285,10 +293,10 @@ function initLoginPage() {
     if (forgotLink && notification) {
         forgotLink.addEventListener('click', (e) => {
             e.preventDefault();
-            notification.textContent = 'Redirecting to password reset page...';
+            notification.textContent = 'Password reset is not yet implemented.';
             notification.classList.add('info');
             notification.style.display = 'block';
-            setTimeout(() => window.location.href = 'forgot-password.html', 2000);
+            setTimeout(() => notification.style.display = 'none', 2000);
         });
     }
 }
@@ -477,7 +485,7 @@ async function initDashboardPage() {
                     notification.style.display = 'block';
                     setTimeout(() => {
                         notification.style.display = 'none';
-                        taskButton.disabled = true; // Keep disabled after success
+                        taskButton.disabled = true;
                     }, 3000);
                     populateBalance();
                     updateTaskStatus();
@@ -520,7 +528,8 @@ async function initBalancePage() {
             const totalBalance = document.getElementById('total-balance');
             const availableBalance = document.getElementById('available-balance');
             const pendingBalance = document.getElementById('pending-balance');
-            if (totalBalance) totalBalance.textContent = `₦${(balance.total || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+            const total = (balance.available || 0) + (balance.pending || 0);
+            if (totalBalance) totalBalance.textContent = `₦${total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
             if (availableBalance) availableBalance.textContent = `₦${(balance.available || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
             if (pendingBalance) pendingBalance.textContent = `₦${(balance.pending || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
         } else {
@@ -554,29 +563,6 @@ async function initBalancePage() {
 }
 
 // Profile Page initialization
-// Utility function for fetching JSON responses with enhanced error handling
-async function fetchJSON(url, options) {
-    try {
-        const response = await fetch(url, options);
-        const contentType = response.headers.get('content-type');
-        if (!response.ok) {
-            const text = await response.text();
-            console.error(`Fetch failed for ${url}: Status ${response.status}, Response: ${text}`);
-            throw new Error(`HTTP error ${response.status}: ${text}`);
-        }
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error(`Non-JSON response from ${url}: Content-Type: ${contentType}, Response: ${text}`);
-            throw new Error('Server returned non-JSON response');
-        }
-        return response;
-    } catch (err) {
-        console.error(`Error fetching ${url}:`, err);
-        throw err;
-    }
-}
-
-// Profile Page initialization
 async function initProfilePage() {
     const token = getToken();
     if (!token) {
@@ -600,7 +586,6 @@ async function initProfilePage() {
                 .catch(err => ({ ok: false, error: err.message }))
         ]);
 
-        // Process each response individually
         if (profileRes.ok) {
             user = await profileRes.json();
         } else {
@@ -625,7 +610,6 @@ async function initProfilePage() {
             console.error('Failed to fetch referral stats:', referralRes.error || 'Unknown error');
         }
 
-        // Check if critical data (user profile) is missing
         if (!user && notification) {
             notification.textContent = 'Error loading critical profile data. Please try again.';
             notification.classList.add('error');
@@ -667,20 +651,55 @@ async function initProfilePage() {
                 const div = document.createElement('div');
                 div.className = 'payment-method';
                 div.innerHTML = `
-                    <p>${method.type}: ${method.type === 'Bank Account' ? `${method.details.bank} - ${method.details.accountNumber}` : method.details.email}</p>
-                    <button class="btn edit" data-id="${method._id}">Edit</button>
-                    <button class="btn remove" data-id="${method._id}">Remove</button>
+                    <p>${method.type}: ${method.type === 'Bank Account' ? `${method.bank} - ${method.accountNumber}` : method.email}</p>
+                    <button class="btn edit" data-id="${method.id}">Edit</button>
+                    <button class="btn remove" data-id="${method.id}">Remove</button>
                 `;
                 list.appendChild(div);
             });
             document.querySelectorAll('.payment-method .edit').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const notification = document.getElementById('payment-notification');
-                    if (notification) {
-                        notification.textContent = `Edit functionality to be implemented`;
-                        notification.classList.add('info');
-                        notification.style.display = 'block';
-                        setTimeout(() => notification.style.display = 'none', 3000);
+                btn.addEventListener('click', async () => {
+                    const methodId = btn.dataset.id;
+                    const method = paymentMethods.find(m => m.id === methodId);
+                    if (!method) return;
+                    const type = prompt('Enter payment method type (Bank Account or PayPal):', method.type);
+                    let details = {};
+                    if (type === 'Bank Account') {
+                        details.bank = prompt('Enter bank name:', method.bank);
+                        details.accountNumber = prompt('Enter account number:', method.accountNumber);
+                    } else if (type === 'PayPal') {
+                        details.email = prompt('Enter PayPal email:', method.email);
+                    } else {
+                        alert('Invalid payment method type.');
+                        return;
+                    }
+                    try {
+                        const response = await fetchJSON(`${API_URL}/api/users/payment-methods/${methodId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ type, ...details })
+                        });
+                        if (response.ok) {
+                            paymentMethods = paymentMethods.map(m => m.id === methodId ? { id: methodId, type, ...details } : m);
+                            populatePaymentMethods();
+                            populateWithdrawalMethods();
+                            if (notification) {
+                                notification.textContent = 'Payment method updated successfully';
+                                notification.classList.add('success');
+                                notification.style.display = 'block';
+                                setTimeout(() => notification.style.display = 'none', 3000);
+                            }
+                        } else {
+                            throw new Error('Failed to update payment method');
+                        }
+                    } catch (err) {
+                        console.error('Error updating payment method:', err);
+                        if (notification) {
+                            notification.textContent = 'Error updating payment method. Please try again.';
+                            notification.classList.add('error');
+                            notification.style.display = 'block';
+                            setTimeout(() => notification.style.display = 'none', 3000);
+                        }
                     }
                 });
             });
@@ -693,10 +712,9 @@ async function initProfilePage() {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (response.ok) {
-                            paymentMethods = paymentMethods.filter(method => method._id !== methodId);
+                            paymentMethods = paymentMethods.filter(method => method.id !== methodId);
                             populatePaymentMethods();
                             populateWithdrawalMethods();
-                            const notification = document.getElementById('payment-notification');
                             if (notification) {
                                 notification.textContent = 'Payment method removed successfully';
                                 notification.classList.add('success');
@@ -708,7 +726,6 @@ async function initProfilePage() {
                         }
                     } catch (err) {
                         console.error('Error removing payment method:', err);
-                        const notification = document.getElementById('payment-notification');
                         if (notification) {
                             notification.textContent = 'Error removing payment method. Please try again.';
                             notification.classList.add('error');
@@ -728,8 +745,8 @@ async function initProfilePage() {
             select.innerHTML = '<option value="" disabled selected>Select a method</option>';
             paymentMethods.forEach(method => {
                 const option = document.createElement('option');
-                option.value = method._id;
-                option.textContent = `${method.type} - ${method.type === 'Bank Account' ? method.details.accountNumber : method.details.email}`;
+                option.value = method.id;
+                option.textContent = `${method.type} - ${method.type === 'Bank Account' ? method.accountNumber : method.email}`;
                 select.appendChild(option);
             });
         }
@@ -827,9 +844,8 @@ async function initProfilePage() {
             const submitBtn = securityForm.querySelector('button');
             submitBtn.disabled = true;
             const newPassword = document.getElementById('new-password')?.value.trim();
-            const twoFAEnabled = document.getElementById('2fa-toggle')?.checked;
-            if (!newPassword && twoFAEnabled === undefined) {
-                securityNotification.textContent = 'No changes made to security settings.';
+            if (!newPassword) {
+                securityNotification.textContent = 'Please enter a new password.';
                 securityNotification.classList.add('error');
                 securityNotification.style.display = 'block';
                 setTimeout(() => {
@@ -842,7 +858,7 @@ async function initProfilePage() {
                 const response = await fetchJSON(`${API_URL}/api/users/security`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ newPassword, twoFAEnabled })
+                    body: JSON.stringify({ newPassword })
                 });
                 if (response.ok) {
                     securityNotification.textContent = 'Security settings updated successfully.';
@@ -870,11 +886,46 @@ async function initProfilePage() {
     const addPaymentBtn = document.getElementById('add-payment-method');
     const paymentNotification = document.getElementById('payment-notification');
     if (addPaymentBtn && paymentNotification) {
-        addPaymentBtn.addEventListener('click', () => {
-            paymentNotification.textContent = 'Add payment method functionality to be implemented';
-            paymentNotification.classList.add('info');
-            paymentNotification.style.display = 'block';
-            setTimeout(() => paymentNotification.style.display = 'none', 3000);
+        addPaymentBtn.addEventListener('click', async () => {
+            const type = prompt('Enter payment method type (Bank Account or PayPal):');
+            let details = {};
+            if (type === 'Bank Account') {
+                details.bank = prompt('Enter bank name:');
+                details.accountNumber = prompt('Enter account number:');
+            } else if (type === 'PayPal') {
+                details.email = prompt('Enter PayPal email:');
+            } else {
+                paymentNotification.textContent = 'Invalid payment method type.';
+                paymentNotification.classList.add('error');
+                paymentNotification.style.display = 'block';
+                setTimeout(() => paymentNotification.style.display = 'none', 3000);
+                return;
+            }
+            try {
+                const response = await fetchJSON(`${API_URL}/api/users/payment-methods`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ type, ...details })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    paymentMethods.push(data.method);
+                    populatePaymentMethods();
+                    populateWithdrawalMethods();
+                    paymentNotification.textContent = 'Payment method added successfully';
+                    paymentNotification.classList.add('success');
+                    paymentNotification.style.display = 'block';
+                    setTimeout(() => paymentNotification.style.display = 'none', 3000);
+                } else {
+                    throw new Error('Failed to add payment method');
+                }
+            } catch (err) {
+                console.error('Error adding payment method:', err);
+                paymentNotification.textContent = 'Error adding payment method. Please try again.';
+                paymentNotification.classList.add('error');
+                paymentNotification.style.display = 'block';
+                setTimeout(() => paymentNotification.style.display = 'none', 3000);
+            }
         });
     }
 
@@ -911,7 +962,7 @@ async function initProfilePage() {
                 const response = await fetchJSON(`${API_URL}/api/users/withdrawals`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ methodId, amount })
+                    body: JSON.stringify({ amount })
                 });
                 if (response.ok) {
                     withdrawalNotification.textContent = `Withdrawal request submitted for ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
@@ -924,7 +975,7 @@ async function initProfilePage() {
                     }, 3000);
                 } else {
                     const data = await response.json();
-                    withdrawalNotification.textContent = data.error || 'Error submitting withdrawal request.';
+                    withdrawalNotification.textContent = data.message || 'Error submitting withdrawal request.';
                     withdrawalNotification.classList.add('error');
                     withdrawalNotification.style.display = 'block';
                     setTimeout(() => {
@@ -999,19 +1050,18 @@ async function initReferralsPage() {
     function populateReferredUsers() {
         const list = document.getElementById('referral-list');
         if (!list) return;
-        list.innerHTML = '';
+        list.innerHTML = referredUsers.length === 0 ? '<p>No referred users.</p>' : '';
         referredUsers.forEach(user => {
             const div = document.createElement('div');
             div.className = 'referral-list-item';
             div.innerHTML = `
                 <i class="fas fa-user"></i>
                 <div>
-                    <span class="label">${user.name}</span>
+                    <span class="label">${user.fullName}</span>
                     <span class="value">
                         Level: ${user.level} |
-                        Joined: ${user.joined} |
-                        Earnings: ₦${(user.earnings || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })} |
-                        ${user.verified ? 'Verified' : 'Non-Verified'}
+                        Joined: ${new Date(user.createdAt).toLocaleDateString()} |
+                        Status: ${user.status === 'verified' || user.status === 'active' ? 'Verified' : 'Non-Verified'}
                     </span>
                 </div>
             `;
@@ -1029,8 +1079,7 @@ async function initReferralsPage() {
             });
             if (!response.ok) throw new Error('Failed to fetch profile');
             const user = await response.json();
-            const username = user.username || 'unknown';
-            referralLink.value = `https://dailytaskacademy.vercel.app/ref/${username.replace(/\s+/g, '_').toLowerCase()}`;
+            referralLink.value = `https://dailytaskacademy.vercel.app/ref/${user.referralCode}`;
         } catch (err) {
             console.error('Error generating referral link:', err);
             if (notification) {
@@ -1089,7 +1138,7 @@ async function initReferralsPage() {
 }
 
 // Register Page initialization
-function initRegisterPage() {
+async function initRegisterPage() {
     const registerForm = document.getElementById('signup-form');
     const notification = document.getElementById('register-notification');
     const usernameError = document.getElementById('username-error');
@@ -1163,9 +1212,9 @@ function initRegisterPage() {
 
     // Handle referral link from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const refLink = urlParams.get('ref');
-    if (refLink && document.getElementById('signup-referral')) {
-        document.getElementById('signup-referral').value = `https://dailytaskacademy.vercel.app/ref/${refLink}`;
+    const referralCode = urlParams.get('ref');
+    if (referralCode && document.getElementById('signup-referral')) {
+        document.getElementById('signup-referral').value = referralCode;
     }
 
     // Check username availability
@@ -1217,12 +1266,11 @@ function initRegisterPage() {
             const phone = document.getElementById('signup-phone')?.value.trim();
             const password = document.getElementById('signup-password')?.value;
             const referralCode = document.getElementById('signup-referral')?.value.trim();
-            const level = parseInt(document.getElementById('signup-level')?.value);
-            const amount = level ? 15000 * Math.pow(2, level - 1) : 0;
+            const level = parseInt(document.getElementById('signup-level')?.value) || 1;
+            const amount = 15000 * Math.pow(2, level - 1);
 
             // Enhanced validation
             if (!fullName || !username || !email || !phone || !password || !level) {
-                console.log('🚀 fullName:', fullName);
                 notification.textContent = `Please fill in all required fields. Missing: ${[
                     !fullName && 'Full Name',
                     !username && 'Username',
@@ -1285,17 +1333,20 @@ function initRegisterPage() {
 
             try {
                 console.log('Sending signup payload:', { fullName, username, email, phone, password, referralCode, level, amount });
-                const response = await fetchJSON(`${API_URL}/api/auth/signup`, {
+                const response = await fetchJSON(`${API_URL}/api/users/signup`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    notification.textContent = `Registration successful! Please pay ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} for Level ${level} to activate your account.`;
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('userId', data.user.id);
+                    socket.emit('join-room', data.user.id);
+                    notification.textContent = `Registration successful! Please verify your email and pay ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} for Level ${level}.`;
                     notification.classList.add('success');
                     notification.style.display = 'block';
-                    setTimeout(() => window.location.href = 'deposit.html', 3000);
+                    setTimeout(() => window.location.href = 'verify-email.html', 3000);
                 } else {
                     notification.textContent = data.message || 'Registration failed.';
                     notification.classList.add('error');
@@ -1396,7 +1447,7 @@ async function initUpgradePage() {
                 const response = await fetchJSON(`${API_URL}/api/users/upgrade`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ newLevel: newLevelInt, amount })
+                    body: JSON.stringify({ level: newLevelInt, amount })
                 });
                 if (response.ok) {
                     notification.textContent = `Upgrade to Level ${newLevel} initiated successfully! Redirecting to payment...`;
@@ -1405,7 +1456,7 @@ async function initUpgradePage() {
                     setTimeout(() => window.location.href = 'deposit.html', 2000);
                 } else {
                     const data = await response.json();
-                    notification.textContent = data.error || `Error initiating upgrade to Level ${newLevel}.`;
+                    notification.textContent = data.message || `Error initiating upgrade to Level ${newLevel}.`;
                     notification.classList.add('error');
                     notification.style.display = 'block';
                     setTimeout(() => {
@@ -1488,8 +1539,8 @@ async function initWithdrawPage() {
             submitBtn.disabled = true;
             const methodId = document.getElementById('withdrawal-method')?.value;
             const amount = parseFloat(document.getElementById('amount')?.value);
-            if (!methodId) {
-                notification.textContent = 'Please select a payment method.';
+            if (!methodId || !amount) {
+                notification.textContent = 'Please select a method and enter an amount.';
                 notification.classList.add('error');
                 notification.style.display = 'block';
                 setTimeout(() => {
@@ -1498,7 +1549,7 @@ async function initWithdrawPage() {
                 }, 3000);
                 return;
             }
-            if (!amount || amount < 1000) {
+            if (amount < 1000) {
                 notification.textContent = 'Amount must be at least ₦1,000.';
                 notification.classList.add('error');
                 notification.style.display = 'block';
@@ -1512,7 +1563,7 @@ async function initWithdrawPage() {
                 const response = await fetchJSON(`${API_URL}/api/users/withdrawals`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ methodId, amount })
+                    body: JSON.stringify({ amount })
                 });
                 if (response.ok) {
                     notification.textContent = `Withdrawal request of ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} submitted successfully!`;
@@ -1526,7 +1577,7 @@ async function initWithdrawPage() {
                     }, 3000);
                 } else {
                     const data = await response.json();
-                    notification.textContent = data.error || 'Failed to submit withdrawal request.';
+                    notification.textContent = data.message || 'Failed to submit withdrawal request.';
                     notification.classList.add('error');
                     notification.style.display = 'block';
                     setTimeout(() => {
@@ -1599,17 +1650,17 @@ async function initDepositPage() {
                     body: JSON.stringify({
                         amount: data.amount,
                         type: data.isUpgrade ? 'upgrade' : 'registration',
-                        level: data.newLevel || data.level
+                        level: data.level
                     })
                 });
                 if (response.ok) {
                     notification.textContent = 'Payment confirmation received.';
                     notification.classList.add('success');
                     notification.style.display = 'block';
-                    setTimeout(() => window.location.href = 'login.html', 3000);
+                    setTimeout(() => window.location.href = 'dashboard.html', 3000);
                 } else {
                     const resData = await response.json();
-                    notification.textContent = resData.error || 'Payment confirmation failed';
+                    notification.textContent = resData.message || 'Payment confirmation failed';
                     notification.classList.add('error');
                     notification.style.display = 'block';
                     setTimeout(() => {
@@ -1640,30 +1691,12 @@ function initLogoutPage() {
             e.preventDefault();
             const submitBtn = logoutForm.querySelector('button');
             submitBtn.disabled = true;
-            try {
-                const token = getToken();
-                const response = await fetchJSON(`${API_URL}/api/users/logout`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                    localStorage.removeItem('token');
-                    notification.textContent = 'Logged out successfully!';
-                    notification.classList.add('success');
-                    notification.style.display = 'block';
-                    setTimeout(() => window.location.href = 'index.html', 2000);
-                } else {
-                    throw new Error('Logout failed');
-                }
-            } catch (err) {
-                notification.textContent = 'Failed to logout. Please try again.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-            }
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            notification.textContent = 'Logged out successfully!';
+            notification.classList.add('success');
+            notification.style.display = 'block';
+            setTimeout(() => window.location.href = 'index.html', 2000);
         });
     }
     if (returnLink && notification) {
@@ -1682,43 +1715,10 @@ function initResetPage() {
     const resetForm = document.getElementById('reset-password');
     const notification = document.getElementById('reset-notification');
     if (resetForm && notification) {
-        resetForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = resetForm.querySelector('button');
-            submitBtn.disabled = true;
-            const password = document.getElementById('reset-password')?.value;
-            const token = new URLSearchParams(window.location.search).get('token');
-            try {
-                const response = await fetchJSON(`${API_URL}/api/auth/reset-password/${token}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    notification.textContent = data.message;
-                    notification.classList.add('success');
-                    notification.style.display = 'block';
-                    setTimeout(() => window.location.href = 'login.html', 3000);
-                } else {
-                    notification.textContent = data.message || 'Error resetting password';
-                    notification.classList.add('error');
-                    notification.style.display = 'block';
-                    setTimeout(() => {
-                        notification.style.display = 'none';
-                        submitBtn.disabled = false;
-                    }, 3000);
-                }
-            } catch (err) {
-                notification.textContent = 'Server error. Please try again.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-            }
-        });
+        notification.textContent = 'Password reset is not yet implemented.';
+        notification.classList.add('info');
+        notification.style.display = 'block';
+        setTimeout(() => window.location.href = 'login.html', 3000);
     }
 }
 
@@ -1727,35 +1727,10 @@ function initForgotPasswordPage() {
     const forgotForm = document.getElementById('forgot-password-form');
     const notification = document.getElementById('forgot-notification');
     if (forgotForm && notification) {
-        forgotForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = forgotForm.querySelector('button');
-            submitBtn.disabled = true;
-            const email = document.getElementById('forgot-email')?.value;
-            try {
-                const response = await fetchJSON(`${API_URL}/api/auth/forgot-password`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const data = await response.json();
-                notification.textContent = data.message;
-                notification.classList.add(response.ok ? 'success' : 'error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-            } catch (err) {
-                notification.textContent = 'Error sending reset link';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-            }
-        });
+        notification.textContent = 'Password reset is not yet implemented.';
+        notification.classList.add('info');
+        notification.style.display = 'block';
+        setTimeout(() => window.location.href = 'login.html', 3000);
     }
 }
 
@@ -1811,39 +1786,55 @@ async function initTransactionsPage() {
 
 // Verify Email Page initialization
 async function initVerifyEmailPage() {
+    const verifyForm = document.getElementById('verify-form');
     const notification = document.getElementById('verify-notification');
-    const token = new URLSearchParams(window.location.search).get('token');
-    if (!token) {
-        if (notification) {
-            notification.textContent = 'Invalid verification link.';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            setTimeout(() => window.location.href = 'index.html', 3000);
-        }
-        return;
-    }
-    try {
-        const response = await fetchJSON(`${API_URL}/api/auth/verify-email/${token}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+    if (verifyForm && notification) {
+        verifyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = verifyForm.querySelector('button');
+            submitBtn.disabled = true;
+            const code = document.getElementById('verify-code')?.value.trim();
+            if (!code) {
+                notification.textContent = 'Please enter the verification code.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    submitBtn.disabled = false;
+                }, 3000);
+                return;
+            }
+            try {
+                const response = await fetchJSON(`${API_URL}/api/users/verify-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    notification.textContent = 'Email verified successfully! Redirecting to deposit...';
+                    notification.classList.add('success');
+                    notification.style.display = 'block';
+                    setTimeout(() => window.location.href = 'deposit.html', 2000);
+                } else {
+                    notification.textContent = data.message || 'Verification failed';
+                    notification.classList.add('error');
+                    notification.style.display = 'block';
+                    setTimeout(() => {
+                        notification.style.display = 'none';
+                        submitBtn.disabled = false;
+                    }, 3000);
+                }
+            } catch (err) {
+                notification.textContent = 'Server error. Please try again';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    submitBtn.disabled = false;
+                }, 3000);
+            }
         });
-        const data = await response.json();
-        if (response.ok) {
-            notification.textContent = 'Email verified successfully! Redirecting to login...';
-            notification.classList.add('success');
-            notification.style.display = 'block';
-            setTimeout(() => window.location.href = 'login.html', 2000);
-        } else {
-            notification.textContent = data.message || 'Verification failed';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            setTimeout(() => window.location.href = 'index.html', 2000);
-        }
-    } catch (err) {
-        notification.textContent = 'Server error. Please try again';
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => window.location.href = 'index.html', 3000);
     }
 }
 
@@ -1874,7 +1865,6 @@ document.addEventListener('DOMContentLoaded', () => {
         withdraw: initWithdrawPage,
         deposit: initDepositPage,
         logout: initLogoutPage,
-        register: initRegisterPage,
         reset: initResetPage,
         forgot: initForgotPasswordPage,
         transactions: initTransactionsPage,
