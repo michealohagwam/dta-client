@@ -1,8 +1,25 @@
 // Base URL for API requests
 const API_URL = 'https://dta-backend-clean.onrender.com';
 const socket = io(API_URL);
-console.log("✅ initRegisterPage is running");
 
+// Socket.IO error handling
+socket.on('connect_error', (err) => {
+    console.error('Socket.IO connection error:', err);
+});
+
+console.log("✅ initRegisterPage is running");
+const token = localStorage.getItem('token');
+const notification = document.getElementById('referral-notification');
+
+// Utility function for fetching JSON responses
+async function fetchJSON(url, options) {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+    }
+    return response;
+}
 
 // Helper function to retrieve the JWT token from local storage
 function getToken() {
@@ -42,7 +59,11 @@ function initUserDropdown() {
     if (userDropdown) {
         userDropdown.addEventListener('click', () => {
             const dropdown = userDropdown.querySelector('.user-dropdown');
-            if (dropdown) dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            } else {
+                console.warn('Dropdown element not found in userDropdown');
+            }
         });
     }
 }
@@ -52,7 +73,7 @@ async function updateUserInfo() {
     const token = getToken();
     if (!token) return;
     try {
-        const response = await fetch(`${API_URL}/api/users/profile`, {
+        const response = await fetchJSON(`${API_URL}/api/users/profile`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -80,7 +101,7 @@ async function initHomePage() {
     const notification = document.getElementById('home-notification');
     if (welcomeMessage && token) {
         try {
-            const response = await fetch(`${API_URL}/api/users/profile`, {
+            const response = await fetchJSON(`${API_URL}/api/users/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -222,23 +243,19 @@ function initLoginPage() {
             }
 
             try {
-                const response = await fetch(`${API_URL}/api/auth/login`, {
+                const response = await fetchJSON(`${API_URL}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Save token and emit join-room with userId
                     localStorage.setItem('token', data.token);
-
                     if (data.user && data.user._id) {
-                        localStorage.setItem('userId', data.user._id); // Optional for later use
-                        socket.emit('join-room', data.user._id); // 🔌 Join room
+                        localStorage.setItem('userId', data.user._id);
+                        socket.emit('join-room', data.user._id);
                     }
-
                     notification.textContent = 'Login successful!';
                     notification.classList.add('success');
                     notification.style.display = 'block';
@@ -265,7 +282,7 @@ function initLoginPage() {
         });
     }
 
-    if (forgotLink) {
+    if (forgotLink && notification) {
         forgotLink.addEventListener('click', (e) => {
             e.preventDefault();
             notification.textContent = 'Redirecting to password reset page...';
@@ -275,8 +292,6 @@ function initLoginPage() {
         });
     }
 }
-
-
 
 // Privacy Page initialization
 function initPrivacyPage() {
@@ -312,7 +327,7 @@ async function initDashboardPage() {
     const taskCompleted = lastTaskDate === today;
     const notification = document.getElementById('task-notification');
     try {
-        const response = await fetch(`${API_URL}/api/users/profile`, {
+        const response = await fetchJSON(`${API_URL}/api/users/profile`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch user');
@@ -389,7 +404,7 @@ async function initDashboardPage() {
             player = new YT.Player('youtube-player', {
                 height: '315',
                 width: '100%',
-                videoId: 'dQw4w9WgXcQ',
+                videoId: user.videoId || 'dQw4w9WgXcQ', // Configurable video ID
                 playerVars: { 'autoplay': 0, 'controls': 1, 'rel': 0 },
                 events: { 'onStateChange': onPlayerStateChange }
             });
@@ -408,7 +423,6 @@ async function initDashboardPage() {
     if (taskButton && notification) {
         taskButton.addEventListener('click', async function(e) {
             e.preventDefault();
-            taskButton.disabled = true;
             if (taskCompleted) {
                 notification.textContent = 'Task already completed today.';
                 notification.classList.add('error');
@@ -430,7 +444,7 @@ async function initDashboardPage() {
                 return;
             }
             try {
-                const response = await fetch(`${API_URL}/api/users/tasks/complete`, {
+                const response = await fetchJSON(`${API_URL}/api/users/tasks/complete`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ reward: 300 })
@@ -477,7 +491,7 @@ async function initBalancePage() {
     }
     const notification = document.getElementById('balance-notification');
     try {
-        const response = await fetch(`${API_URL}/api/users/balance`, {
+        const response = await fetchJSON(`${API_URL}/api/users/balance`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -485,9 +499,9 @@ async function initBalancePage() {
             const totalBalance = document.getElementById('total-balance');
             const availableBalance = document.getElementById('available-balance');
             const pendingBalance = document.getElementById('pending-balance');
-            if (totalBalance) totalBalance.textContent = `₦${(balance.total || 0).toLocaleString()}`;
-            if (availableBalance) availableBalance.textContent = `₦${(balance.available || 0).toLocaleString()}`;
-            if (pendingBalance) pendingBalance.textContent = `₦${(balance.pending || 0).toLocaleString()}`;
+            if (totalBalance) totalBalance.textContent = `₦${(balance.total || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+            if (availableBalance) availableBalance.textContent = `₦${(balance.available || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+            if (pendingBalance) pendingBalance.textContent = `₦${(balance.pending || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
         } else {
             if (notification) {
                 notification.textContent = 'Failed to fetch balance.';
@@ -530,10 +544,10 @@ async function initProfilePage() {
     const notification = document.getElementById('profile-notification');
     try {
         const [profileRes, paymentRes, txRes, referralRes] = await Promise.all([
-            fetch(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`${API_URL}/api/users/payment-methods`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`${API_URL}/api/users/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`${API_URL}/api/users/referrals/stats`, { headers: { 'Authorization': `Bearer ${token}` } })
+            fetchJSON(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetchJSON(`${API_URL}/api/users/payment-methods`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetchJSON(`${API_URL}/api/users/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetchJSON(`${API_URL}/api/users/referrals/stats`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
         if (!profileRes.ok || !paymentRes.ok || !txRes.ok || !referralRes.ok) throw new Error('Failed to fetch profile data');
         user = await profileRes.json();
@@ -595,7 +609,7 @@ async function initProfilePage() {
                 btn.addEventListener('click', async () => {
                     const methodId = parseInt(btn.dataset.id);
                     try {
-                        const response = await fetch(`${API_URL}/api/users/payment-methods/${methodId}`, {
+                        const response = await fetchJSON(`${API_URL}/api/users/payment-methods/${methodId}`, {
                             method: 'DELETE',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
@@ -652,7 +666,7 @@ async function initProfilePage() {
                 tr.innerHTML = `
                     <td>${transaction.date}</td>
                     <td>${transaction.type}</td>
-                    <td>₦${Math.abs(transaction.amount).toLocaleString()}</td>
+                    <td>₦${Math.abs(transaction.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
                     <td>${transaction.description}</td>
                     <td>${transaction.status}</td>
                 `;
@@ -666,7 +680,7 @@ async function initProfilePage() {
         const referralCount = document.getElementById('referral-count');
         const referralEarnings = document.getElementById('referral-earnings');
         if (referralCount) referralCount.textContent = referralStats.count;
-        if (referralEarnings) referralEarnings.textContent = `₦${referralStats.earnings.toLocaleString()}`;
+        if (referralEarnings) referralEarnings.textContent = `₦${(referralStats.earnings || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
     }
 
     const profileForm = document.getElementById('profile-form');
@@ -696,7 +710,7 @@ async function initProfilePage() {
                     return;
                 }
                 try {
-                    const response = await fetch(`${API_URL}/api/users/profile`, {
+                    const response = await fetchJSON(`${API_URL}/api/users/profile`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ username, bank: `${bankName} - ${accountNumber}` })
@@ -746,7 +760,7 @@ async function initProfilePage() {
                 return;
             }
             try {
-                const response = await fetch(`${API_URL}/api/users/security`, {
+                const response = await fetchJSON(`${API_URL}/api/users/security`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ newPassword, twoFAEnabled })
@@ -815,13 +829,13 @@ async function initProfilePage() {
                 return;
             }
             try {
-                const response = await fetch(`${API_URL}/api/users/withdrawals`, {
+                const response = await fetchJSON(`${API_URL}/api/users/withdrawals`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ methodId, amount })
                 });
                 if (response.ok) {
-                    withdrawalNotification.textContent = `Withdrawal request submitted for ₦${amount.toLocaleString()}`;
+                    withdrawalNotification.textContent = `Withdrawal request submitted for ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
                     withdrawalNotification.classList.add('success');
                     withdrawalNotification.style.display = 'block';
                     setTimeout(() => {
@@ -866,12 +880,19 @@ async function initReferralsPage() {
         window.location.href = 'login.html';
         return;
     }
-    let referralStats, referredUsers;
+
+    let referralStats = {};
+    let referredUsers = [];
     const notification = document.getElementById('referral-notification');
+
     try {
         const [statsRes, usersRes] = await Promise.all([
-            fetch(`${API_URL}/api/users/referrals/stats`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`${API_URL}/api/users/referrals`, { headers: { 'Authorization': `Bearer ${token}` } })
+            fetchJSON(`${API_URL}/api/users/referrals/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetchJSON(`${API_URL}/api/users/referrals`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
         ]);
         if (!statsRes.ok || !usersRes.ok) throw new Error('Failed to fetch referral data');
         referralStats = await statsRes.json();
@@ -887,56 +908,57 @@ async function initReferralsPage() {
         return;
     }
 
-    // Populate referral statistics
+    // Populate Referral Stats
     function populateReferralStats() {
         const referralCount = document.getElementById('referral-count');
         const referralEarnings = document.getElementById('referral-earnings');
-        if (referralCount) referralCount.textContent = referralStats.count;
-        if (referralEarnings) referralEarnings.textContent = `₦${referralStats.earnings.toLocaleString()}`;
+        if (referralCount) referralCount.textContent = referralStats.count || 0;
+        if (referralEarnings) referralEarnings.textContent = `₦${(referralStats.earnings || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
     }
 
-    // Populate list of referred users
+    // Populate Referred Users List
     function populateReferredUsers() {
         const list = document.getElementById('referral-list');
-        if (list) {
-            list.innerHTML = '';
-            referredUsers.forEach(user => {
-                const div = document.createElement('div');
-                div.className = 'referral-list-item';
-                div.innerHTML = `
-                    <i class="fas fa-user"></i>
-                    <div>
-                        <span class="label">${user.name}</span>
-                        <span class="value">Level: ${user.level} | Joined: ${user.joined} | Earnings: ₦${user.earnings.toLocaleString()} | ${user.verified ? 'Verified' : 'Non-Verified'}</span>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-        }
+        if (!list) return;
+        list.innerHTML = '';
+        referredUsers.forEach(user => {
+            const div = document.createElement('div');
+            div.className = 'referral-list-item';
+            div.innerHTML = `
+                <i class="fas fa-user"></i>
+                <div>
+                    <span class="label">${user.name}</span>
+                    <span class="value">
+                        Level: ${user.level} |
+                        Joined: ${user.joined} |
+                        Earnings: ₦${(user.earnings || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })} |
+                        ${user.verified ? 'Verified' : 'Non-Verified'}
+                    </span>
+                </div>
+            `;
+            list.appendChild(div);
+        });
     }
 
-    // Generate and display referral link
+    // Generate and Display Referral Link
     async function generateReferralLink() {
         const referralLink = document.getElementById('referral-link');
-        if (referralLink) {
-            try {
-                const response = await fetch(`${API_URL}/api/users/profile`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                    const user = await response.json();
-                    referralLink.value = `https://dailytaskacademy.com/ref/${user.username.replace(/\s+/g, '_').toLowerCase()}`;
-                } else {
-                    throw new Error('Failed to fetch user profile');
-                }
-            } catch (err) {
-                console.error('Error generating referral link:', err);
-                if (notification) {
-                    notification.textContent = 'Error generating referral link. Please try again.';
-                    notification.classList.add('error');
-                    notification.style.display = 'block';
-                    setTimeout(() => notification.style.display = 'none', 3000);
-                }
+        if (!referralLink) return;
+        try {
+            const response = await fetchJSON(`${API_URL}/api/users/profile`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch profile');
+            const user = await response.json();
+            const username = user.username || 'unknown';
+            referralLink.value = `https://dailytaskacademy.vercel.app/ref/${username.replace(/\s+/g, '_').toLowerCase()}`;
+        } catch (err) {
+            console.error('Error generating referral link:', err);
+            if (notification) {
+                notification.textContent = 'Error generating referral link. Please try again.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
             }
         }
     }
@@ -956,25 +978,29 @@ async function initReferralsPage() {
         toggleCount.addEventListener('click', toggleReferrals);
     }
 
+    // Copy Referral Link to Clipboard
     const copyLinkBtn = document.getElementById('copy-link-btn');
     if (copyLinkBtn && notification) {
         copyLinkBtn.addEventListener('click', () => {
             const link = document.getElementById('referral-link');
-            if (link) {
-                link.select();
-                try {
-                    navigator.clipboard.writeText(link.value);
-                    notification.textContent = 'Referral link copied to clipboard!';
-                    notification.classList.add('success');
-                    notification.style.display = 'block';
-                    setTimeout(() => notification.style.display = 'none', 3000);
-                } catch (err) {
-                    notification.textContent = 'Failed to copy link. Please copy manually.';
-                    notification.classList.add('error');
-                    notification.style.display = 'block';
-                    setTimeout(() => notification.style.display = 'none', 3000);
-                }
+            if (!link || !link.value) {
+                notification.textContent = 'No referral link available to copy.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
+                return;
             }
+            navigator.clipboard.writeText(link.value).then(() => {
+                notification.textContent = 'Referral link copied to clipboard!';
+                notification.classList.add('success');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
+            }).catch(() => {
+                notification.textContent = 'Failed to copy link. Please copy manually.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
+            });
         });
     }
 
@@ -985,243 +1011,235 @@ async function initReferralsPage() {
 
 // Register Page initialization
 function initRegisterPage() {
-  const registerForm = document.getElementById('signup-form');
-  const notification = document.getElementById('register-notification');
-  const usernameError = document.getElementById('username-error');
-  const usernameInput = document.getElementById('signup-username');
-  const policyModal = document.getElementById('policy-modal');
-  const termsCheckbox = document.getElementById('terms-checkbox');
-  const privacyCheckbox = document.getElementById('privacy-checkbox');
-  const disclaimerCheckbox = document.getElementById('disclaimer-checkbox');
-  const continueBtn = document.getElementById('policy-continue-btn');
-  const cancelBtn = document.getElementById('policy-cancel-btn');
-  const submitBtn = document.querySelector('#signup-form button[type="submit"]');
+    const registerForm = document.getElementById('signup-form');
+    const notification = document.getElementById('register-notification');
+    const usernameError = document.getElementById('username-error');
+    const usernameInput = document.getElementById('signup-username');
+    const policyModal = document.getElementById('policy-modal');
+    const termsCheckbox = document.getElementById('terms-checkbox');
+    const privacyCheckbox = document.getElementById('privacy-checkbox');
+    const disclaimerCheckbox = document.getElementById('disclaimer-checkbox');
+    const continueBtn = document.getElementById('policy-continue-btn');
+    const cancelBtn = document.getElementById('policy-cancel-btn');
+    const submitBtn = document.querySelector('#signup-form button[type="submit"]');
 
-  if (!policyModal && notification) {
-    notification.textContent = 'Policy modal not found. Please check HTML.';
-    notification.classList.add('error');
-    notification.style.display = 'block';
-    setTimeout(() => notification.style.display = 'none', 3000);
-    return;
-  }
+    if (!policyModal && notification) {
+        notification.textContent = 'Policy modal not found. Please check HTML.';
+        notification.classList.add('error');
+        notification.style.display = 'block';
+        setTimeout(() => notification.style.display = 'none', 3000);
+        return;
+    }
 
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.style.opacity = '0.6';
-    submitBtn.style.cursor = 'not-allowed';
-  }
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.6';
+        submitBtn.style.cursor = 'not-allowed';
+    }
 
-  if (policyModal) {
-    policyModal.style.display = 'flex';
+    if (policyModal) {
+        policyModal.style.display = 'flex';
 
-    function checkPolicyAcceptance() {
-      if (!termsCheckbox || !privacyCheckbox || !disclaimerCheckbox) {
-        if (notification) {
-          notification.textContent = 'Policy checkboxes not found. Please check HTML.';
-          notification.classList.add('error');
-          notification.style.display = 'block';
-          setTimeout(() => notification.style.display = 'none', 3000);
+        function checkPolicyAcceptance() {
+            if (!termsCheckbox || !privacyCheckbox || !disclaimerCheckbox) {
+                if (notification) {
+                    notification.textContent = 'Policy checkboxes not found. Please check HTML.';
+                    notification.classList.add('error');
+                    notification.style.display = 'block';
+                    setTimeout(() => notification.style.display = 'none', 3000);
+                }
+                return;
+            }
+            const allChecked = termsCheckbox.checked && privacyCheckbox.checked && disclaimerCheckbox.checked;
+            if (continueBtn) {
+                continueBtn.disabled = !allChecked;
+                continueBtn.style.opacity = allChecked ? '1' : '0.6';
+                continueBtn.style.cursor = allChecked ? 'pointer' : 'not-allowed';
+            }
         }
-        return;
-      }
-      const allChecked = termsCheckbox.checked && privacyCheckbox.checked && disclaimerCheckbox.checked;
-      if (continueBtn) {
-        continueBtn.disabled = !allChecked;
-        continueBtn.style.opacity = allChecked ? '1' : '0.6';
-        continueBtn.style.cursor = allChecked ? 'pointer' : 'not-allowed';
-      }
-    }
 
-    if (termsCheckbox) termsCheckbox.addEventListener('change', checkPolicyAcceptance);
-    if (privacyCheckbox) privacyCheckbox.addEventListener('change', checkPolicyAcceptance);
-    if (disclaimerCheckbox) disclaimerCheckbox.addEventListener('change', checkPolicyAcceptance);
+        if (termsCheckbox) termsCheckbox.addEventListener('change', checkPolicyAcceptance);
+        if (privacyCheckbox) privacyCheckbox.addEventListener('change', checkPolicyAcceptance);
+        if (disclaimerCheckbox) disclaimerCheckbox.addEventListener('change', checkPolicyAcceptance);
 
-    if (continueBtn) {
-      continueBtn.addEventListener('click', () => {
-        if (!continueBtn.disabled) {
-          policyModal.style.display = 'none';
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '1';
-            submitBtn.style.cursor = 'pointer';
-          }
+        if (continueBtn) {
+            continueBtn.addEventListener('click', () => {
+                if (!continueBtn.disabled) {
+                    policyModal.style.display = 'none';
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+                    }
+                }
+            });
         }
-      });
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+        }
     }
 
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => {
-        window.location.href = 'index.html';
-      });
+    // Handle referral link from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const refLink = urlParams.get('ref');
+    if (refLink && document.getElementById('signup-referral')) {
+        document.getElementById('signup-referral').value = `https://dailytaskacademy.vercel.app/ref/${refLink}`;
     }
-  }
 
-  // Handle referral link from URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const refLink = urlParams.get('ref');
-  if (refLink && document.getElementById('signup-referral')) {
-    document.getElementById('signup-referral').value = `https://dailytaskacademy.vercel.app/ref/${refLink}`;
-  }
-
-  // Check username availability
-  async function checkUsername(username) {
-    if (!username) return false;
-    try {
-      const response = await fetch(`${API_URL}/api/users/check-username?username=${encodeURIComponent(username)}`);
-      if (!response.ok) throw new Error('Failed to check username');
-      const data = await response.json();
-      return data.available;
-    } catch (err) {
-      console.error('Error checking username:', err);
-      return false;
+    // Check username availability
+    async function checkUsername(username) {
+        if (!username) return false;
+        try {
+            const response = await fetchJSON(`${API_URL}/api/users/check-username?username=${encodeURIComponent(username)}`);
+            if (!response.ok) throw new Error('Failed to check username');
+            const data = await response.json();
+            return data.available;
+        } catch (err) {
+            console.error('Error checking username:', err);
+            return false;
+        }
     }
-  }
 
-  // Debounce function to limit API calls during username input
-  function debounce(func, delay) {
-    let timeoutId;
-    return function (...args) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => func.apply(this, args), delay);
-    };
-  }
+    // Debounce function to limit API calls during username input
+    function debounce(func, delay) {
+        let timeoutId;
+        return function (...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
 
-  if (usernameInput && usernameError) {
-    const validateUsername = debounce(async (username) => {
-      if (!username) {
-        usernameError.style.display = 'none';
-        return;
-      }
-      const isAvailable = await checkUsername(username);
-      usernameError.style.display = isAvailable ? 'none' : 'block';
-    }, 300);
-    usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
-  }
+    if (usernameInput && usernameError) {
+        const validateUsername = debounce(async (username) => {
+            if (!username) {
+                usernameError.style.display = 'none';
+                return;
+            }
+            const isAvailable = await checkUsername(username);
+            usernameError.style.display = isAvailable ? 'none' : 'block';
+        }, 300);
+        usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
+    }
 
-  // Form submission
-  if (registerForm && notification) {
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const submitBtn = registerForm.querySelector('button');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Registering...';
+    // Form submission
+    if (registerForm && notification) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = registerForm.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Registering...';
 
-      const fullName = document.getElementById('signup-name')?.value.trim();
-      const username = document.getElementById('signup-username')?.value.trim();
-      const email = document.getElementById('signup-email')?.value.trim();
-      const phone = document.getElementById('signup-phone')?.value.trim();
-      const password = document.getElementById('signup-password')?.value;
-      const referralCode = document.getElementById('signup-referral')?.value.trim();
-      const level = parseInt(document.getElementById('signup-level')?.value);
-      const amount = level ? 15000 * Math.pow(2, level - 1) : 0;
+            const fullName = document.getElementById('signup-name')?.value.trim();
+            const username = document.getElementById('signup-username')?.value.trim();
+            const email = document.getElementById('signup-email')?.value.trim();
+            const phone = document.getElementById('signup-phone')?.value.trim();
+            const password = document.getElementById('signup-password')?.value;
+            const referralCode = document.getElementById('signup-referral')?.value.trim();
+            const level = parseInt(document.getElementById('signup-level')?.value);
+            const amount = level ? 15000 * Math.pow(2, level - 1) : 0;
 
-      // Enhanced validation
-      if (!fullName || !username || !email || !phone || !password || !level) {
-        console.log('🚀 fullName:', fullName);
-        notification.textContent = `Please fill in all required fields. Missing: ${[
-          !fullName && 'Full Name',
-          !username && 'Username',
-          !email && 'Email',
-          !phone && 'Phone',
-          !password && 'Password',
-          !level && 'Level'
-        ].filter(Boolean).join(', ')}.`;
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => {
-          notification.style.display = 'none';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Register';
-        }, 3000);
-        return;
-      }
+            // Enhanced validation
+            if (!fullName || !username || !email || !phone || !password || !level) {
+                console.log('🚀 fullName:', fullName);
+                notification.textContent = `Please fill in all required fields. Missing: ${[
+                    !fullName && 'Full Name',
+                    !username && 'Username',
+                    !email && 'Email',
+                    !phone && 'Phone',
+                    !password && 'Password',
+                    !level && 'Level'
+                ].filter(Boolean).join(', ')}.`;
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Register';
+                }, 3000);
+                return;
+            }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        notification.textContent = 'Please enter a valid email address.';
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => {
-          notification.style.display = 'none';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Register';
-        }, 3000);
-        return;
-      }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                notification.textContent = 'Please enter a valid email address.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Register';
+                }, 3000);
+                return;
+            }
 
-      const phoneRegex = /^[0-9]{10,15}$/;
-      if (!phoneRegex.test(phone)) {
-        notification.textContent = 'Please enter a valid phone number (10-15 digits, numbers only).';
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => {
-          notification.style.display = 'none';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Register';
-        }, 3000);
-        return;
-      }
+            const phoneRegex = /^[0-9]{10,15}$/;
+            if (!phoneRegex.test(phone)) {
+                notification.textContent = 'Please enter a valid phone number (10-15 digits, numbers only).';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Register';
+                }, 3000);
+                return;
+            }
 
-      const isUsernameAvailable = await checkUsername(username);
-      if (!isUsernameAvailable) {
-        usernameError.style.display = 'block';
-        notification.textContent = 'Username already taken. Please choose another.';
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => {
-          notification.style.display = 'none';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Register';
-        }, 3000);
-        return;
-      } else {
-        usernameError.style.display = 'none';
-      }
+            const isUsernameAvailable = await checkUsername(username);
+            if (!isUsernameAvailable) {
+                usernameError.style.display = 'block';
+                notification.textContent = 'Username already taken. Please choose another.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Register';
+                }, 3000);
+                return;
+            } else {
+                usernameError.style.display = 'none';
+            }
 
-      try {
-        console.log('Sending signup payload:', { name, username, email, phone, password, referralCode, level, amount });
-        const response = await fetch(`${API_URL}/api/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
+            try {
+                console.log('Sending signup payload:', { fullName, username, email, phone, password, referralCode, level, amount });
+                const response = await fetchJSON(`${API_URL}/api/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    notification.textContent = `Registration successful! Please pay ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} for Level ${level} to activate your account.`;
+                    notification.classList.add('success');
+                    notification.style.display = 'block';
+                    setTimeout(() => window.location.href = 'deposit.html', 3000);
+                } else {
+                    notification.textContent = data.message || 'Registration failed.';
+                    notification.classList.add('error');
+                    notification.style.display = 'block';
+                    setTimeout(() => {
+                        notification.style.display = 'none';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Register';
+                    }, 3000);
+                }
+            } catch (err) {
+                console.error('Registration failed:', err);
+                notification.textContent = 'Server error. Please try again.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Register';
+                }, 3000);
+            }
         });
-
-        let data;
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          data = await response.json();
-        } else {
-          throw new Error('Server returned non-JSON response');
-        }
-
-        if (response.ok) {
-          notification.textContent = `Registration successful! Please pay ₦${amount.toLocaleString()} for Level ${level} to activate your account.`;
-          notification.classList.add('success');
-          notification.style.display = 'block';
-          setTimeout(() => window.location.href = 'deposit.html', 3000);
-        } else {
-          notification.textContent = data.message || 'Registration failed.';
-          notification.classList.add('error');
-          notification.style.display = 'block';
-          setTimeout(() => {
-            notification.style.display = 'none';
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Register';
-          }, 3000);
-        }
-      } catch (err) {
-        console.error('Registration failed:', err);
-        notification.textContent = 'Server error. Please try again.';
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => {
-          notification.style.display = 'none';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Register';
-        }, 3000);
-      }
-    });
-  }
+    }
 }
 
 // Upgrade Page initialization
@@ -1235,7 +1253,7 @@ async function initUpgradePage() {
     let user;
     const notification = document.getElementById('upgrade-notification');
     try {
-        const response = await fetch(`${API_URL}/api/users/profile`, {
+        const response = await fetchJSON(`${API_URL}/api/users/profile`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch user');
@@ -1256,7 +1274,7 @@ async function initUpgradePage() {
         const currentLevel = document.getElementById('current-level');
         const availableBalance = document.getElementById('available-balance');
         if (currentLevel) currentLevel.textContent = `Level ${user.level}`;
-        if (availableBalance) availableBalance.textContent = `₦${(user.balance?.available || 0).toLocaleString()}`;
+        if (availableBalance) availableBalance.textContent = `₦${(user.balance?.available || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
     }
 
     // Disable options for levels at or below current level
@@ -1296,7 +1314,7 @@ async function initUpgradePage() {
             }
             const amount = 15000 * Math.pow(2, newLevelInt - 1);
             try {
-                const response = await fetch(`${API_URL}/api/users/upgrade`, {
+                const response = await fetchJSON(`${API_URL}/api/users/upgrade`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ newLevel: newLevelInt, amount })
@@ -1344,8 +1362,8 @@ async function initWithdrawPage() {
     const notification = document.getElementById('withdraw-notification');
     try {
         const [userRes, paymentRes] = await Promise.all([
-            fetch(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`${API_URL}/api/users/payment-methods`, { headers: { 'Authorization': `Bearer ${token}` } })
+            fetchJSON(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetchJSON(`${API_URL}/api/users/payment-methods`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
         if (!userRes.ok || !paymentRes.ok) throw new Error('Failed to fetch data');
         user = await userRes.json();
@@ -1365,7 +1383,7 @@ async function initWithdrawPage() {
     function populateBalance() {
         const availableBalance = document.getElementById('available-balance');
         if (availableBalance) {
-            availableBalance.textContent = `₦${(user.balance?.available || 0).toLocaleString()}`;
+            availableBalance.textContent = `₦${(user.balance?.available || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
         }
     }
 
@@ -1412,13 +1430,13 @@ async function initWithdrawPage() {
                 return;
             }
             try {
-                const response = await fetch(`${API_URL}/api/users/withdrawals`, {
+                const response = await fetchJSON(`${API_URL}/api/users/withdrawals`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ methodId, amount })
                 });
                 if (response.ok) {
-                    notification.textContent = `Withdrawal request of ₦${amount.toLocaleString()} submitted successfully!`;
+                    notification.textContent = `Withdrawal request of ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} submitted successfully!`;
                     notification.classList.add('success');
                     notification.style.display = 'block';
                     setTimeout(() => {
@@ -1468,7 +1486,7 @@ async function initDepositPage() {
     const levelSpan = document.getElementById('level');
     let data;
     try {
-        const response = await fetch(`${API_URL}/api/users/pending-payment`, {
+        const response = await fetchJSON(`${API_URL}/api/users/pending-payment`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('No payment data found');
@@ -1487,7 +1505,7 @@ async function initDepositPage() {
     if (actionLink && amountSpan && levelSpan) {
         actionLink.textContent = data.isUpgrade ? 'Upgrade to' : '';
         levelSpan.textContent = `Level ${data.level}`;
-        amountSpan.textContent = `₦${data.amount.toLocaleString()}`;
+        amountSpan.textContent = `₦${(data.amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
     }
 
     if (paymentForm && notification) {
@@ -1496,7 +1514,7 @@ async function initDepositPage() {
             const submitBtn = paymentForm.querySelector('button');
             submitBtn.disabled = true;
             try {
-                const response = await fetch(`${API_URL}/api/users/deposits`, {
+                const response = await fetchJSON(`${API_URL}/api/users/deposits`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({
@@ -1545,7 +1563,7 @@ function initLogoutPage() {
             submitBtn.disabled = true;
             try {
                 const token = getToken();
-                const response = await fetch(`${API_URL}/api/users/logout`, {
+                const response = await fetchJSON(`${API_URL}/api/users/logout`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -1569,7 +1587,7 @@ function initLogoutPage() {
             }
         });
     }
-    if (returnLink) {
+    if (returnLink && notification) {
         returnLink.addEventListener('click', (e) => {
             e.preventDefault();
             notification.textContent = 'Returning to dashboard...';
@@ -1592,7 +1610,7 @@ function initResetPage() {
             const password = document.getElementById('reset-password')?.value;
             const token = new URLSearchParams(window.location.search).get('token');
             try {
-                const response = await fetch(`${API_URL}/api/auth/reset-password/${token}`, {
+                const response = await fetchJSON(`${API_URL}/api/auth/reset-password/${token}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
@@ -1636,7 +1654,7 @@ function initForgotPasswordPage() {
             submitBtn.disabled = true;
             const email = document.getElementById('forgot-email')?.value;
             try {
-                const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+                const response = await fetchJSON(`${API_URL}/api/auth/forgot-password`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email })
@@ -1673,15 +1691,14 @@ async function initTransactionsPage() {
     let transactions = [];
     const notification = document.getElementById('transaction-notification');
     try {
-        const response = await fetch(`${API_URL}/api/users/transactions`, {
+        const response = await fetchJSON(`${API_URL}/api/users/transactions`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch transactions');
         transactions = await response.json();
     } catch (err) {
         console.error('Error fetching transactions:', err);
-        const list = document.getElementById('transaction-list');
-        if (list && notification) {
+        if (notification) {
             notification.textContent = 'Error loading transactions. Please try again later.';
             notification.classList.add('error');
             notification.style.display = 'block';
@@ -1702,7 +1719,7 @@ async function initTransactionsPage() {
                     <i class="fas fa-${tx.type === 'Deposit' ? 'plus-circle' : 'minus-circle'}"></i>
                     <div>
                         <div class="label">${tx.date} - ${tx.type}</div>
-                        <span class="value">₦${Math.abs(tx.amount).toLocaleString()} | ${tx.description} | Status: ${tx.status}</span>
+                        <span class="value">₦${Math.abs(tx.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })} | ${tx.description} | Status: ${tx.status}</span>
                     </div>
                 `;
                 list.appendChild(div);
@@ -1718,14 +1735,16 @@ async function initVerifyEmailPage() {
     const notification = document.getElementById('verify-notification');
     const token = new URLSearchParams(window.location.search).get('token');
     if (!token) {
-        notification.textContent = 'Invalid verification link.';
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => window.location.href = 'index.html', 3000);
+        if (notification) {
+            notification.textContent = 'Invalid verification link.';
+            notification.classList.add('error');
+            notification.style.display = 'block';
+            setTimeout(() => window.location.href = 'index.html', 3000);
+        }
         return;
     }
     try {
-        const response = await fetch(`${API_URL}/api/auth/verify-email/${token}`, {
+        const response = await fetchJSON(`${API_URL}/api/auth/verify-email/${token}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -1759,6 +1778,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initUserDropdown();
         updateUserInfo();
     }
+
     const pageInit = {
         home: initHomePage,
         about: initAboutPage,
