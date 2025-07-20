@@ -1002,6 +1002,144 @@ async function initProfilePage() {
     populateReferralStats();
 }
 
+// Utility function to make authenticated fetch requests
+async function fetchJSON(url, options = {}) {
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        },
+    });
+    return response;
+}
+
+// Utility function to get token from localStorage
+function getToken() {
+    return localStorage.getItem('token');
+}
+
+// Debounce utility for username validation
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Check username availability
+async function checkUsername(username) {
+    if (!username) return false;
+    try {
+        const response = await fetchJSON(`${API_URL}/api/users/check-username?username=${encodeURIComponent(username)}`);
+        if (!response.ok) throw new Error('Failed to check username');
+        const data = await response.json();
+        return data.available;
+    } catch (err) {
+        console.error('Error checking username:', err);
+        return false;
+    }
+}
+
+// Register Page initialization
+async function initRegisterPage() {
+    const signupForm = document.getElementById('signup-form');
+    const notification = document.getElementById('notification');
+    const submitBtn = document.getElementById('signup-btn');
+    const usernameInput = document.getElementById('signup-username');
+    const usernameError = document.getElementById('username-error');
+
+    // Prefill referral code from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const referralCode = urlParams.get('ref');
+    if (referralCode && referralCode !== 'undefined' && document.getElementById('signup-referral')) {
+        document.getElementById('signup-referral').value = referralCode;
+    }
+
+    // Username availability check
+    if (usernameInput && usernameError) {
+        const validateUsername = debounce(async (username) => {
+            if (!username) {
+                usernameError.style.display = 'none';
+                return;
+            }
+            const isAvailable = await checkUsername(username);
+            usernameError.style.display = isAvailable ? 'none' : 'block';
+        }, 300);
+        usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
+    }
+
+    if (signupForm) {
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (submitBtn.disabled) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Registering...';
+
+            try {
+                const fullName = document.getElementById('signup-fullname')?.value.trim();
+                const username = document.getElementById('signup-username')?.value.trim();
+                const email = document.getElementById('signup-email')?.value.trim();
+                const phone = document.getElementById('signup-phone')?.value.trim();
+                const password = document.getElementById('signup-password')?.value.trim();
+                const referralCode = document.getElementById('signup-referral')?.value.trim();
+                const level = parseInt(document.getElementById('signup-level')?.value) || 1;
+                const amount = parseFloat(document.getElementById('signup-amount')?.value) || 15000;
+
+                // Validate referral code format
+                const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+                if (referralCode && (!usernameRegex.test(referralCode) || referralCode === 'undefined')) {
+                    notification.textContent = 'Invalid referral code format. Must be 3-20 characters, alphanumeric or underscores.';
+                    notification.classList.add('error');
+                    notification.style.display = 'block';
+                    setTimeout(() => {
+                        notification.style.display = 'none';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Register';
+                    }, 3000);
+                    return;
+                }
+
+                const response = await fetchJSON(`${API_URL}/api/users/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Signup failed');
+                }
+
+                const data = await response.json();
+                localStorage.setItem('token', data.token);
+                notification.textContent = data.message;
+                notification.classList.add('success');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = 'verify-email.html';
+                }, 2000);
+            } catch (err) {
+                console.error('Signup error:', err);
+                notification.textContent = err.message || 'An error occurred during signup';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Register';
+                }, 3000);
+            }
+        });
+    }
+}
+
 // Referrals Page initialization
 async function initReferralsPage() {
     const token = getToken();
@@ -1079,7 +1217,10 @@ async function initReferralsPage() {
             });
             if (!response.ok) throw new Error('Failed to fetch profile');
             const user = await response.json();
-            referralLink.value = `https://dailytaskacademy.vercel.app/ref/${user.referralCode}`;
+            // Use referralCode if available and valid, otherwise fallback to username
+            const code = user.referralCode && user.referralCode !== 'undefined' && user.referralCode !== null ? user.referralCode : user.username;
+            referralLink.value = `https://dailytaskacademy.vercel.app/ref/${encodeURIComponent(code)}`;
+            console.log('Generated referral link:', referralLink.value); // Debug log
         } catch (err) {
             console.error('Error generating referral link:', err);
             if (notification) {
@@ -1137,6 +1278,15 @@ async function initReferralsPage() {
     generateReferralLink();
 }
 
+// Initialize page based on current URL
+document.addEventListener('DOMContentLoaded', () => {
+    const path = window.location.pathname;
+    if (path.includes('signup.html')) {
+        initRegisterPage();
+    } else if (path.includes('referrals.html')) {
+        initReferralsPage();
+    }
+});
 // Register Page initialization
 async function initRegisterPage() {
     const registerForm = document.getElementById('signup-form');
