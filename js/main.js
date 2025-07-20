@@ -1870,5 +1870,7 @@ document.addEventListener('DOMContentLoaded', () => {
         transactions: initTransactionsPage,
         verify: initVerifyEmailPage
     };
+    if (pageInit[
+    };
     if (pageInit[page]) pageInit[page]();
 });
