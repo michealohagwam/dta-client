@@ -745,8 +745,8 @@ async function initProfilePage() {
       const submitBtn = withdrawalForm.querySelector('button');
       submitBtn.disabled = true;
       const amount = parseFloat(document.getElementById('withdrawal-amount')?.value);
-      if (!amount || amount < 1000) {
-        showNotification(amount ? 'Amount must be at least ₦1,000.' : 'Please enter an amount.', 'error', withdrawalNotification);
+      if (!amount || amount < 3000) {
+        showNotification(amount ? 'Amount must be at least ₦3,000.' : 'Please enter an amount.', 'error', withdrawalNotification);
         submitBtn.disabled = false;
         return;
       }
@@ -1176,8 +1176,8 @@ async function initWithdrawPage() {
       const submitBtn = withdrawForm.querySelector('button');
       submitBtn.disabled = true;
       const amount = parseFloat(document.getElementById('amount')?.value);
-      if (!amount || amount < 1000) {
-        showNotification(amount ? 'Amount must be at least ₦1,000.' : 'Please enter an amount.', 'error', notification);
+      if (!amount || amount < 3000) {
+        showNotification(amount ? 'Amount must be at least ₦3,000.' : 'Please enter an amount.', 'error', notification);
         submitBtn.disabled = false;
         return;
       }
