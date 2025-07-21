@@ -100,12 +100,8 @@
       <!-- Update Profile Section -->
       <section class="update-profile">
         <h2>Update Profile</h2>
-        <p>Set your username and withdrawal bank account details. This can only be set once.</p>
+        <p>Set your withdrawal bank account details. This can only be set once.</p>
         <form class="profile-form" id="profile-form">
-          <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" placeholder="Enter username" required />
-          </div>
           <div class="form-group">
             <label for="bank-name">Bank Name</label>
             <input type="text" id="bank-name" placeholder="e.g. Access Bank" required />
@@ -119,33 +115,7 @@
         <div id="profile-notification" class="notification"></div>
       </section>
 
-      <!-- KYC Verification Section -->
-      <section class="kyc-section">
-        <h2>KYC Verification</h2>
-        <p>Submit a government-approved document to verify your identity.</p>
-        <div class="kyc-status">
-          <span id="kyc-status" class="status-badge pending">Pending Verification</span>
-        </div>
-        <form class="kyc-form" id="kyc-form">
-          <div class="form-group">
-            <label for="document-type">Document Type</label>
-            <select id="document-type" required>
-              <option value="" disabled selected>Select document type</option>
-              <option value="passport">International Passport</option>
-              <option value="drivers-license">Driver's License</option>
-              <option value="national-id">National ID Card</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="document-upload">Upload Document</label>
-            <input type="file" id="document-upload" accept=".pdf,.jpg,.png" required />
-          </div>
-          <button type="submit" class="btn cta-btn">Submit KYC</button>
-        </form>
-        <div id="kyc-notification" class="notification"></div>
-      </section>
-
-      <!-- Security Settings Section -->
+      <!-- Security Settings Section 
       <section class="security-settings">
         <h2>Security Settings</h2>
         <p>Update your password or manage two-factor authentication.</p>
@@ -165,6 +135,7 @@
         </form>
         <div id="security-notification" class="notification"></div>
       </section>
+      -->
 
       <!-- Payment Methods Section -->
       <section class="payment-methods">
@@ -173,79 +144,6 @@
         <div id="payment-methods-list"></div>
         <button class="btn cta-btn" id="add-payment-method">Add Payment Method</button>
         <div id="payment-notification" class="notification"></div>
-      </section>
-
-      <!-- Withdrawal Request Section -->
-      <section class="withdrawal-request">
-        <h2>Request Withdrawal</h2>
-        <form id="withdrawal-form" class="withdraw-form">
-          <div class="form-group">
-            <label for="withdrawal-method">Select Payment Method</label>
-            <select id="withdrawal-method" required>
-              <option value="" disabled selected>Select a method</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="withdrawal-amount">Amount (₦)</label>
-            <input type="number" id="withdrawal-amount" placeholder="Enter amount" required />
-          </div>
-          <button type="submit" class="btn cta-btn">Request Withdrawal</button>
-        </form>
-        <div id="withdrawal-notification" class="notification"></div>
-        <p>Minimum withdrawal amount: ₦3,000 | Processing fee: 1.5% | Estimated processing time: 3-5 business days</p>
-      </section>
-
-      <!-- Payout Rules Section -->
-      <section class="payout-rules">
-        <h2>Payout Rules</h2>
-        <ul>
-          <li>Minimum withdrawal amount is ₦3,000.</li>
-          <li>A processing fee of 1.5% is applied to each withdrawal.</li>
-          <li>Withdrawals are processed within 3-5 business days.</li>
-          <li>Ensure your payment method is verified before requesting a withdrawal.</li>
-        </ul>
-      </section>
-
-      <!-- Transaction History Section -->
-      <section class="transaction-history">
-        <h2>Transaction History</h2>
-        <p>View your recent transactions, including earnings, withdrawals, and referrals.</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Description</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="transaction-history-table"></tbody>
-        </table>
-        <a href="transactions.html" class="btn">View All Transactions</a>
-      </section>
-
-      <!-- Referral Stats Section -->
-      <section class="referral-stats">
-        <h2>Referral Stats</h2>
-        <p>Track your referral progress.</p>
-        <div class="referral-card">
-          <div class="referral-item">
-            <i class="fas fa-users"></i>
-            <div>
-              <span class="label">Total Referrals</span>
-              <span class="value" id="referral-count">0</span>
-            </div>
-          </div>
-          <div class="referral-item">
-            <i class="fas fa-coins"></i>
-            <div>
-              <span class="label">Referral Earnings</span>
-              <span class="value" id="referral-earnings">₦0</span>
-            </div>
-          </div>
-        </div>
-        <a href="referrals.html" class="btn">View Referral Details</a>
       </section>
     </main>
   </div>

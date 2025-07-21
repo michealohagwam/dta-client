@@ -51,18 +51,28 @@
       </nav>
     </aside>
 
-    <main class="main-content">
-      <h1>Transaction History</h1>
-      <p>View your deposits, referral earnings and withdrawal transactions.</p>
-
-      <!-- Transaction List -->
-      <section class="transaction-section">
-        <h2>Your Transactions</h2>
+    <!-- Transaction History Section -->
+      <section class="transaction-history">
+        <h2 class="transaction-section">Transaction History</h2>
+        <p>View your recent transactions, including earnings, withdrawals, and referrals.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="transaction-history-table"></tbody>
+        </table>
+        <a href="transactions.html" class="btn">View All Transactions</a>
         <div class="transaction-list" id="transaction-list">
           <!-- Transactions populated dynamically -->
         </div>
+        <div id="transaction-notification" class="notification"></div>
       </section>
-      <div id="transaction-notification" class="notification"></div>
     </main>
   </div>
 
