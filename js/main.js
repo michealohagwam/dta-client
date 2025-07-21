@@ -1048,97 +1048,96 @@ async function checkUsername(username) {
 
 // Register Page initialization
 async function initRegisterPage() {
-    const signupForm = document.getElementById('signup-form');
-    const notification = document.getElementById('notification');
-    const submitBtn = document.getElementById('signup-btn');
-    const usernameInput = document.getElementById('signup-username');
-    const usernameError = document.getElementById('username-error');
+  const signupForm = document.getElementById('signup-form');
+  const notification = document.getElementById('register-notification') || document.getElementById('notification');
+  const submitBtn = signupForm?.querySelector('button[type="submit"]');
+  const usernameInput = document.getElementById('signup-username');
+  const usernameError = document.getElementById('username-error');
+  const referralInput = document.getElementById('signup-referral');
 
-    // Prefill referral code from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const referralCode = urlParams.get('ref');
-    if (referralCode && referralCode !== 'undefined' && document.getElementById('signup-referral')) {
-        document.getElementById('signup-referral').value = referralCode;
+  if (!signupForm || !submitBtn) return;
+
+  // Prefill referral code from URL if available
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
+  if (refCode && refCode !== 'undefined' && referralInput) {
+    referralInput.value = refCode;
+  }
+
+  // Username availability check (debounced)
+  if (usernameInput && usernameError) {
+    const validateUsername = debounce(async (username) => {
+      if (!username) return (usernameError.style.display = 'none');
+
+      const isAvailable = await checkUsername(username);
+      usernameError.style.display = isAvailable ? 'none' : 'block';
+    }, 300);
+
+    usernameInput.addEventListener('input', (e) => {
+      validateUsername(e.target.value.trim());
+    });
+  }
+
+  // Form submission handler
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (submitBtn.disabled) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Registering...';
+
+    try {
+      const getVal = (id) => document.getElementById(id)?.value.trim();
+      const fullName = getVal('signup-name');
+      const username = getVal('signup-username');
+      const email = getVal('signup-email');
+      const phone = getVal('signup-phone');
+      const password = getVal('signup-password');
+      const referralCode = getVal('signup-referral');
+      const level = parseInt(document.getElementById('signup-level')?.value) || 1;
+      const amount = parseFloat(document.getElementById('signup-amount')?.value) || 15000;
+
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      if (referralCode && (!usernameRegex.test(referralCode) || referralCode === 'undefined')) {
+        showNotification('Invalid referral code format.', 'error');
+        resetButton();
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/api/users/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Signup failed');
+
+      localStorage.setItem('token', data.token);
+      showNotification(data.message, 'success');
+      setTimeout(() => window.location.href = 'verify-email.html', 2000);
+
+    } catch (err) {
+      showNotification(err.message || 'Signup error', 'error');
+      resetButton();
     }
+  });
 
-    // Username availability check
-    if (usernameInput && usernameError) {
-        const validateUsername = debounce(async (username) => {
-            if (!username) {
-                usernameError.style.display = 'none';
-                return;
-            }
-            const isAvailable = await checkUsername(username);
-            usernameError.style.display = isAvailable ? 'none' : 'block';
-        }, 300);
-        usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
-    }
+  // Helpers
+  function resetButton() {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Register';
+  }
 
-    if (signupForm) {
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (submitBtn.disabled) return;
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Registering...';
-
-            try {
-                const fullName = document.getElementById('signup-fullname')?.value.trim();
-                const username = document.getElementById('signup-username')?.value.trim();
-                const email = document.getElementById('signup-email')?.value.trim();
-                const phone = document.getElementById('signup-phone')?.value.trim();
-                const password = document.getElementById('signup-password')?.value.trim();
-                const referralCode = document.getElementById('signup-referral')?.value.trim();
-                const level = parseInt(document.getElementById('signup-level')?.value) || 1;
-                const amount = parseFloat(document.getElementById('signup-amount')?.value) || 15000;
-
-                // Validate referral code format
-                const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-                if (referralCode && (!usernameRegex.test(referralCode) || referralCode === 'undefined')) {
-                    notification.textContent = 'Invalid referral code format. Must be 3-20 characters, alphanumeric or underscores.';
-                    notification.classList.add('error');
-                    notification.style.display = 'block';
-                    setTimeout(() => {
-                        notification.style.display = 'none';
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'Register';
-                    }, 3000);
-                    return;
-                }
-
-                const response = await fetchJSON(`${API_URL}/api/users/signup`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Signup failed');
-                }
-
-                const data = await response.json();
-                localStorage.setItem('token', data.token);
-                notification.textContent = data.message;
-                notification.classList.add('success');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    window.location.href = 'verify-email.html';
-                }, 2000);
-            } catch (err) {
-                console.error('Signup error:', err);
-                notification.textContent = err.message || 'An error occurred during signup';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Register';
-                }, 3000);
-            }
-        });
-    }
+  function showNotification(message, type) {
+    if (!notification) return;
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.style.display = 'block';
+    setTimeout(() => (notification.style.display = 'none'), 3000);
+  }
 }
+
 
 // Referrals Page initialization
 async function initReferralsPage() {
@@ -1287,78 +1286,59 @@ document.addEventListener('DOMContentLoaded', () => {
         initReferralsPage();
     }
 });
+
+
 // Register Page initialization
 async function initRegisterPage() {
-    const registerForm = document.getElementById('signup-form');
-    const notification = document.getElementById('register-notification');
-    const usernameError = document.getElementById('username-error');
-    const usernameInput = document.getElementById('signup-username');
-    const policyModal = document.getElementById('policy-modal');
-    const termsCheckbox = document.getElementById('terms-checkbox');
-    const privacyCheckbox = document.getElementById('privacy-checkbox');
-    const disclaimerCheckbox = document.getElementById('disclaimer-checkbox');
-    const continueBtn = document.getElementById('policy-continue-btn');
-    const cancelBtn = document.getElementById('policy-cancel-btn');
-    const submitBtn = document.querySelector('#signup-form button[type="submit"]');
+  const registerForm = document.getElementById('signup-form');
+  const notification = document.getElementById('register-notification');
+  const policyModal = document.getElementById('policy-modal');
+  const continueBtn = document.getElementById('policy-continue-btn');
+  const cancelBtn = document.getElementById('policy-cancel-btn');
+  const submitBtn = document.querySelector('#signup-form button[type="submit"]');
 
-    if (!policyModal && notification) {
-        notification.textContent = 'Policy modal not found. Please check HTML.';
-        notification.classList.add('error');
-        notification.style.display = 'block';
-        setTimeout(() => notification.style.display = 'none', 3000);
-        return;
+  // Show error if modal not found
+  if (!policyModal && notification) {
+    notification.textContent = 'Policy modal not found. Please check HTML.';
+    notification.classList.add('error');
+    notification.style.display = 'block';
+    setTimeout(() => notification.style.display = 'none', 3000);
+    return;
+  }
+
+  // Disable the submit button by default
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.6';
+    submitBtn.style.cursor = 'not-allowed';
+  }
+
+  // Display modal and handle buttons
+  if (policyModal) {
+    policyModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // prevent background scrolling
+
+    if (continueBtn) {
+      continueBtn.addEventListener('click', () => {
+        // Enable form and close modal
+        policyModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.style.opacity = '1';
+          submitBtn.style.cursor = 'pointer';
+        }
+      });
     }
 
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.6';
-        submitBtn.style.cursor = 'not-allowed';
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        // Redirect to home page
+        window.location.href = 'index.html';
+      });
     }
-
-    if (policyModal) {
-        policyModal.style.display = 'flex';
-
-        function checkPolicyAcceptance() {
-            if (!termsCheckbox || !privacyCheckbox || !disclaimerCheckbox) {
-                if (notification) {
-                    notification.textContent = 'Policy checkboxes not found. Please check HTML.';
-                    notification.classList.add('error');
-                    notification.style.display = 'block';
-                    setTimeout(() => notification.style.display = 'none', 3000);
-                }
-                return;
-            }
-            const allChecked = termsCheckbox.checked && privacyCheckbox.checked && disclaimerCheckbox.checked;
-            if (continueBtn) {
-                continueBtn.disabled = !allChecked;
-                continueBtn.style.opacity = allChecked ? '1' : '0.6';
-                continueBtn.style.cursor = allChecked ? 'pointer' : 'not-allowed';
-            }
-        }
-
-        if (termsCheckbox) termsCheckbox.addEventListener('change', checkPolicyAcceptance);
-        if (privacyCheckbox) privacyCheckbox.addEventListener('change', checkPolicyAcceptance);
-        if (disclaimerCheckbox) disclaimerCheckbox.addEventListener('change', checkPolicyAcceptance);
-
-        if (continueBtn) {
-            continueBtn.addEventListener('click', () => {
-                if (!continueBtn.disabled) {
-                    policyModal.style.display = 'none';
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.style.opacity = '1';
-                        submitBtn.style.cursor = 'pointer';
-                    }
-                }
-            });
-        }
-
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => {
-                window.location.href = 'index.html';
-            });
-        }
-    }
+  }
+}
 
     // Handle referral link from URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -1520,7 +1500,6 @@ async function initRegisterPage() {
             }
         });
     }
-}
 
 // Upgrade Page initialization
 async function initUpgradePage() {

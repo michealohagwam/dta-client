@@ -10,6 +10,7 @@
 </head>
 <body data-page="register">
   <div id="global-notification" class="notification" style="display: none;"></div>
+
   <!-- HEADER -->
   <header class="navbar">
     <div class="logo">
@@ -28,86 +29,84 @@
   <div class="auth-form">
     <h1>Register</h1>
     <p>Create your account to join DailyTask Academy.</p>
+    
     <form id="signup-form" class="withdraw-form">
       <div class="form-group">
         <label for="signup-name">Full Name</label>
         <input type="text" id="signup-name" placeholder="Enter full name as per bank details" required />
       </div>
+
       <div class="form-group">
         <label for="signup-username">Username</label>
         <input type="text" id="signup-username" placeholder="Enter unique username" required />
         <small id="username-error" class="error-message" style="display: none;">Username already taken.</small>
       </div>
+
       <div class="form-group">
         <label for="signup-email">Email</label>
         <input type="email" id="signup-email" placeholder="Enter email" required />
       </div>
+
       <div class="form-group">
         <label for="signup-phone">Phone Number</label>
         <input type="tel" id="signup-phone" placeholder="Enter phone number (e.g., 08012345678)" pattern="[0-9]{10,15}" required />
       </div>
+
       <div class="form-group">
         <label for="signup-password">Password</label>
         <input type="password" id="signup-password" placeholder="Enter password" required />
       </div>
+
       <div class="form-group">
         <label for="signup-referral">Referral Code (Optional)</label>
-        <input type="text" id="signup-referral" placeholder="Enter referral link" />
+        <input type="text" id="signup-referral" placeholder="Enter referral code" />
       </div>
-    <div class="form-group">
-      <label for="signup-level">Select Level</label>
-       <select id="signup-level" name="level" required>
-         <option value="" disabled selected>Choose your level</option>
-         <option value="1">Level 1 - ₦15,000</option>
-         <option value="2">Level 2 - ₦30,000</option>
-         <option value="3">Level 3 - ₦60,000</option>
-         <option value="4">Level 4 - ₦120,000</option>
-         <option value="5">Level 5 - ₦240,000</option>
-         <option value="6">Level 6 - ₦480,000</option>
-         <option value="7">Level 7 - ₦960,000</option>
-         <option value="8">Level 8 - ₦1,920,000</option>
-         <option value="9">Level 9 - ₦3,840,000</option>
-         <option value="10">Level 10 - ₦7,680,000</option>
-      </select>
-    </div>
+
+      <div class="form-group">
+        <label for="signup-level">Select Level</label>
+        <select id="signup-level" name="level" required>
+          <option value="" disabled selected>Choose your level</option>
+          <option value="1">Level 1 - ₦15,000</option>
+          <option value="2">Level 2 - ₦30,000</option>
+          <option value="3">Level 3 - ₦60,000</option>
+          <option value="4">Level 4 - ₦120,000</option>
+          <option value="5">Level 5 - ₦240,000</option>
+          <option value="6">Level 6 - ₦480,000</option>
+          <option value="7">Level 7 - ₦960,000</option>
+          <option value="8">Level 8 - ₦1,920,000</option>
+          <option value="9">Level 9 - ₦3,840,000</option>
+          <option value="10">Level 10 - ₦7,680,000</option>
+        </select>
+      </div>
+
+      <!-- Inline Policy Notice Section -->
+      <section class="policy-info">
+        <h4>Before You Register</h4>
+        <p>Please be aware of the following:</p>
+        <ul style="padding-left: 1rem;">
+          <li><strong>1.</strong> You must agree to our <a href="terms.html" target="_blank">Terms & Conditions</a>.</li>
+          <li><strong>2.</strong> You must understand and accept our <a href="privacy.html" target="_blank">Privacy Policy</a>.</li>
+          <li><strong>3.</strong> You must read our <a href="disclaimer.html" target="_blank">Disclaimer / Risk Notice</a>.</li>
+        </ul>
+      </section>
+
       <div class="form-group">
         <button type="submit" class="btn cta-btn"><i class="fas fa-user-plus"></i> Register</button>
       </div>
     </form>
+
     <div id="register-notification" class="notification"></div>
     <p>Already have an account? <a href="login.html">Login</a></p>
   </div>
 
-  <!-- Policy Acceptance Modal -->
-<div id="policy-modal" class="modal">
-    <div class="modal-content">
-        <h2>Accept Our Policies</h2>
-        <p>Please read and accept the following policies to continue with registration:</p>
-        <div class="modal-checkbox">
-            <input type="checkbox" id="terms-checkbox" />
-            <label for="terms-checkbox">I have read and agree to the <a href="terms.html" target="_blank">Terms & Conditions</a>.</label>
-        </div>
-        <div class="modal-checkbox">
-            <input type="checkbox" id="privacy-checkbox" />
-            <label for="privacy-checkbox">I have read and agree to the <a href="privacy.html" target="_blank">Privacy Policy</a>.</label>
-        </div>
-        <div class="modal-checkbox">
-            <input type="checkbox" id="disclaimer-checkbox" />
-            <label for="disclaimer-checkbox">I have read and agree to the <a href="disclaimer.html" target="_blank">Disclaimer / Risk Notice</a>.</label>
-        </div>
-        <div class="modal-actions">
-            <button id="policy-continue-btn" class="btn cta-btn" disabled>Continue</button>
-            <button id="policy-cancel-btn" class="btn">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- FOOTER -->
-<footer>
-  <p>© <span id="current-year">2025</span> DailyTask Academy. All rights reserved.</p>
-  <p><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms & Conditions</a> | <a href="disclaimer.html">Disclaimer</a></p>
-</footer>
-
-<script src="./js/main.js"></script>
+  <!-- FOOTER -->
+  <footer>
+    <p>© <span id="current-year">2025</span> DailyTask Academy. All rights reserved.</p>
+    <p>
+      <a href="privacy.html">Privacy Policy</a> |
+      <a href="terms.html">Terms & Conditions</a> |
+      <a href="disclaimer.html">Disclaimer</a>
+    </p>
+  </footer>
 </body>
 </html>
