@@ -1187,249 +1187,117 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 // Referrals Page initialization
-async function initReferralsPage() {
-    const token = getToken();
-    if (!token) {
-        alert('Please log in to access this page.');
-        window.location.href = 'login.html';
-        return;
-    }
+document.addEventListener('DOMContentLoaded', () => {
+  const page = document.body.dataset.page;
 
-    let referralStats = {};
-    let referredUsers = [];
-    const notification = document.getElementById('referral-notification');
+  switch (page) {
+    case 'referrals':
+      initReferralsPage();
+      break;
+    case 'dashboard':
+    case 'balance':
+    case 'upgrade':
+    case 'withdraw':
+    case 'transactions':
+    case 'profile':
+      initCommonUI();
+      break;
+    // Add more as needed
+  }
+});
 
-    try {
-        const [statsRes, usersRes] = await Promise.all([
-            fetchJSON(`${API_URL}/api/users/referrals/stats`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            }),
-            fetchJSON(`${API_URL}/api/users/referrals`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-        ]);
-        if (!statsRes.ok || !usersRes.ok) throw new Error('Failed to fetch referral data');
-        referralStats = await statsRes.json();
-        referredUsers = await usersRes.json();
-    } catch (err) {
-        console.error('Error fetching referral data:', err);
-        if (notification) {
-            notification.textContent = 'Error loading referral data. Please try again.';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            setTimeout(() => notification.style.display = 'none', 3000);
-        }
-        return;
-    }
+// 🔁 Shared: Populate user info in header/sidebar
+async function initCommonUI() {
+  try {
+    const user = await getProfile();
+    if (!user) return;
 
-    // Populate Referral Stats
-    function populateReferralStats() {
-        const referralCount = document.getElementById('referral-count');
-        const referralEarnings = document.getElementById('referral-earnings');
-        if (referralCount) referralCount.textContent = referralStats.count || 0;
-        if (referralEarnings) referralEarnings.textContent = `₦${(referralStats.earnings || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
-    }
-
-    // Populate Referred Users List
-    function populateReferredUsers() {
-        const list = document.getElementById('referral-list');
-        if (!list) return;
-        list.innerHTML = referredUsers.length === 0 ? '<p>No referred users.</p>' : '';
-        referredUsers.forEach(user => {
-            const div = document.createElement('div');
-            div.className = 'referral-list-item';
-            div.innerHTML = `
-                <i class="fas fa-user"></i>
-                <div>
-                    <span class="label">${user.fullName}</span>
-                    <span class="value">
-                        Level: ${user.level} |
-                        Joined: ${new Date(user.createdAt).toLocaleDateString()} |
-                        Status: ${user.status === 'verified' || user.status === 'active' ? 'Verified' : 'Non-Verified'}
-                    </span>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    }
-
-    // Generate and Display Referral Link
-    async function generateReferralLink() {
-        const referralLink = document.getElementById('referral-link');
-        if (!referralLink) return;
-        try {
-            const response = await fetchJSON(`${API_URL}/api/users/profile`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error('Failed to fetch profile');
-            const user = await response.json();
-            const code = user.referralCode && user.referralCode !== 'undefined' && user.referralCode !== null ? user.referralCode : user.username;
-            referralLink.value = `https://dailytaskacademy.vercel.app/ref/${encodeURIComponent(code)}`;
-            console.log('Generated referral link:', referralLink.value);
-        } catch (err) {
-            console.error('Error generating referral link:', err);
-            if (notification) {
-                notification.textContent = 'Error generating referral link. Please try again.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => notification.style.display = 'none', 3000);
-            }
-        }
-    }
-
-    // Toggle visibility of referred users section
-    const toggleReferrals = () => {
-        const referredUsersSection = document.getElementById('referred-users');
-        if (referredUsersSection) {
-            referredUsersSection.style.display = referredUsersSection.style.display === 'none' ? 'block' : 'none';
-        }
-    };
-
-    const toggleLabel = document.getElementById('toggle-referrals-label');
-    const toggleCount = document.getElementById('referral-count');
-    if (toggleLabel && toggleCount) {
-        toggleLabel.addEventListener('click', toggleReferrals);
-        toggleCount.addEventListener('click', toggleReferrals);
-    }
-
-    // Copy Referral Link to Clipboard
-    const copyLinkBtn = document.getElementById('copy-link-btn');
-    if (copyLinkBtn && notification) {
-        copyLinkBtn.addEventListener('click', () => {
-            const link = document.getElementById('referral-link');
-            if (!link || !link.value) {
-                notification.textContent = 'No referral link available to copy.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => notification.style.display = 'none', 3000);
-                return;
-            }
-            navigator.clipboard.writeText(link.value).then(() => {
-                notification.textContent = 'Referral link copied to clipboard!';
-                notification.classList.add('success');
-                notification.style.display = 'block';
-                setTimeout(() => notification.style.display = 'none', 3000);
-            }).catch(() => {
-                notification.textContent = 'Failed to copy link. Please copy manually.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => notification.style.display = 'none', 3000);
-            });
-        });
-    }
-
-    populateReferralStats();
-    populateReferredUsers();
-    generateReferralLink();
+    const name = user.fullName || user.username || 'User';
+    document.getElementById('header-user-name').textContent = `Welcome, ${name}`;
+    document.getElementById('sidebar-user-name').textContent = name;
+    document.getElementById('sidebar-user-level').textContent = `Level ${user.level || 1}`;
+    socket.emit('join-room', user._id || user.id);
+  } catch (err) {
+    console.error('❌ initCommonUI error:', err);
+  }
 }
 
-// Upgrade Page initialization
-async function initUpgradePage() {
-    const token = getToken();
-    if (!token) {
-        alert('Please log in to access this page.');
-        window.location.href = 'login.html';
-        return;
-    }
-    let user;
-    const notification = document.getElementById('upgrade-notification');
-    try {
-        const response = await fetchJSON(`${API_URL}/api/users/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!response.ok) throw new Error('Failed to fetch user');
-        user = await response.json();
-    } catch (err) {
-        console.error('Error fetching user:', err);
-        if (notification) {
-            notification.textContent = 'Error loading user data. Please try again.';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            setTimeout(() => notification.style.display = 'none', 3000);
-        }
-        return;
-    }
-
-    // Populate current user level and balance
-    function populateUserData() {
-        const currentLevel = document.getElementById('current-level');
-        const availableBalance = document.getElementById('available-balance');
-        if (currentLevel) currentLevel.textContent = `Level ${user.level}`;
-        if (availableBalance) availableBalance.textContent = `₦${(user.balance?.available || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
-    }
-
-    // Disable options for levels at or below current level
-    function disableLowerLevels() {
-        document.querySelectorAll('#new-level option').forEach(option => {
-            if (option.value && parseInt(option.value) <= user.level) option.disabled = true;
-        });
-    }
-
-    const upgradeForm = document.getElementById('upgrade-form');
-    if (upgradeForm && notification) {
-        upgradeForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = upgradeForm.querySelector('button');
-            submitBtn.disabled = true;
-            const newLevel = document.getElementById('new-level')?.value;
-            if (!newLevel) {
-                notification.textContent = 'Please select a new level.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-                return;
-            }
-            const newLevelInt = parseInt(newLevel);
-            if (newLevelInt <= user.level) {
-                notification.textContent = 'Please select a level higher than your current level.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-                return;
-            }
-            const amount = 15000 * Math.pow(2, newLevelInt - 1);
-            try {
-                const response = await fetchJSON(`${API_URL}/api/users/upgrade`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ level: newLevelInt, amount })
-                });
-                if (response.ok) {
-                    notification.textContent = `Upgrade to Level ${newLevel} initiated successfully! Redirecting to payment...`;
-                    notification.classList.add('success');
-                    notification.style.display = 'block';
-                    setTimeout(() => window.location.href = 'deposit.html', 2000);
-                } else {
-                    const data = await response.json();
-                    notification.textContent = data.message || `Error initiating upgrade to Level ${newLevel}.`;
-                    notification.classList.add('error');
-                    notification.style.display = 'block';
-                    setTimeout(() => {
-                        notification.style.display = 'none';
-                        submitBtn.disabled = false;
-                    }, 3000);
-                }
-            } catch (err) {
-                notification.textContent = 'Server error. Please try again.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-            }
-        });
-    }
-
-    populateUserData();
-    disableLowerLevels();
+// 🌟 Referral Page Setup
+function initReferralsPage() {
+  console.log('📢 Referrals page initialized');
+  initCommonUI();
+  generateReferralLink();
+  initReferralCopyButton();
+  // Optionally load referral stats, list, etc...
 }
+
+// 🔗 Generate referral link based on user profile
+async function generateReferralLink() {
+  const token = localStorage.getItem('token');
+  const referralLinkInput = document.getElementById('referral-link');
+
+  if (!token || !referralLinkInput) {
+    console.error('🚫 Missing token or referral-link input field');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/users/profile`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const user = await res.json();
+
+    const code = user.referralCode || user.username || 'yourusername';
+    const fullLink = `https://dailytaskacademy.vercel.app/ref/${code}`;
+    referralLinkInput.value = fullLink;
+    console.log('✅ Referral link set to:', fullLink);
+  } catch (err) {
+    console.error('❌ Failed to generate referral link:', err);
+    referralLinkInput.value = 'Error loading link';
+  }
+}
+
+// 📋 Copy Referral Link Button
+function initReferralCopyButton() {
+  const copyBtn = document.getElementById('copy-link-btn');
+  const referralLinkInput = document.getElementById('referral-link');
+
+  if (!copyBtn || !referralLinkInput) return;
+
+  copyBtn.addEventListener('click', () => {
+    referralLinkInput.select();
+    document.execCommand('copy');
+
+    Toastify({
+      text: "Referral link copied!",
+      style: { background: "linear-gradient(to right, #00b09b, #96c93d)" },
+      duration: 2000
+    }).showToast();
+  });
+}
+
+// 👤 Fetch user profile using token
+async function getProfile() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.warn('⚠️ No token found');
+    return null;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/users/profile`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error('❌ Failed to fetch profile:', err);
+    return null;
+  }
+}
+
 
 // Withdraw Page initialization
 async function initWithdrawPage() {
