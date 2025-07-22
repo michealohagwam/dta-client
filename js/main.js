@@ -1052,174 +1052,121 @@ async function checkUsername(username) {
 
 
 // Registration Page initialization
-async function initRegisterPage() {
-    const registerForm = document.getElementById('signup-form');
-    const notification = document.getElementById('register-notification') || document.getElementById('notification');
-    const submitBtn = registerForm?.querySelector('button[type="submit"]');
-    const usernameInput = document.getElementById('signup-username');
-    const usernameError = document.getElementById('username-error');
-    const referralInput = document.getElementById('signup-referral');
+function initRegisterPage() {
+  console.log('✅ initRegisterPage loaded');
 
-    if (!registerForm || !submitBtn || !notification) {
-        console.error('❌ Required elements missing:', { registerForm, submitBtn, notification });
-        if (notification) {
-            notification.textContent = 'Form setup error. Please refresh the page.';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            setTimeout(() => notification.style.display = 'none', 3000);
-        }
-        return;
+  const form = document.getElementById('signup-form');
+  const nameInput = document.getElementById('signup-name');
+  const usernameInput = document.getElementById('signup-username');
+  const emailInput = document.getElementById('signup-email');
+  const phoneInput = document.getElementById('signup-phone');
+  const passwordInput = document.getElementById('signup-password');
+  const referralInput = document.getElementById('signup-referral');
+  const levelInput = document.getElementById('signup-level');
+  const usernameError = document.getElementById('username-error');
+  const notification = document.getElementById('register-notification');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  if (!form) {
+    console.error('❌ signup-form not found');
+    return;
+  }
+
+  // Username availability check
+  usernameInput.addEventListener('blur', async () => {
+    const username = usernameInput.value.trim();
+    if (username.length < 3) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/users/check-username/${username}`);
+      const data = await res.json();
+      if (!data.available) {
+        usernameError.style.display = 'block';
+        usernameInput.classList.add('error');
+      } else {
+        usernameError.style.display = 'none';
+        usernameInput.classList.remove('error');
+      }
+    } catch (err) {
+      console.error('Error checking username:', err);
+    }
+  });
+
+  // Form submission
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Registering...`;
+
+    const fullName = nameInput.value.trim();
+    const username = usernameInput.value.trim();
+    const email = emailInput.value.trim();
+    const phone = phoneInput.value.trim();
+    const password = passwordInput.value.trim();
+    const referralCode = referralInput.value.trim().replace(/^@/, '');
+    const level = parseInt(levelInput.value);
+    const amount = level * 15000;
+
+    if (!fullName || !username || !email || !phone || !password || !level) {
+      Toastify({
+        text: "Please fill in all required fields",
+        style: { background: "linear-gradient(to right, #f00, #a00)" },
+        duration: 3000
+      }).showToast();
+      resetButton();
+      return;
     }
 
-    submitBtn.disabled = false;
-    submitBtn.style.opacity = '1';
-    submitBtn.style.cursor = 'pointer';
+    const payload = { fullName, username, email, phone, password, referralCode, level, amount };
+    console.log('🟡 Sending registration payload:', payload);
 
-    // Handle referral link from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const referralCodeFromURL = urlParams.get('ref');
-    if (referralCodeFromURL && referralInput) {
-        referralInput.value = referralCodeFromURL;
-    }
+    try {
+      const res = await fetch(`${API_URL}/api/users/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    // Username availability check
-    if (usernameInput && usernameError) {
-        const validateUsername = debounce(async (username) => {
-            if (!username) {
-                usernameError.style.display = 'none';
-                return;
-            }
-            const isAvailable = await checkUsername(username);
-            usernameError.style.display = isAvailable ? 'none' : 'block';
-        }, 300);
-        usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
-    }
+      const data = await res.json();
+      console.log('🟢 Signup response:', data);
 
-    registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Registering...';
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.user.id);
+        socket.emit('join-room', data.user.id);
 
-        const fullName = document.getElementById('signup-name')?.value.trim();
-        const username = document.getElementById('signup-username')?.value.trim();
-        const email = document.getElementById('signup-email')?.value.trim();
-        const phone = document.getElementById('signup-phone')?.value.trim();
-        const password = document.getElementById('signup-password')?.value;
-        const referralCode = document.getElementById('signup-referral')?.value.trim();
-        const level = parseInt(document.getElementById('signup-level')?.value) || 1;
-        const amount = 15000 * Math.pow(2, level - 1);
+        Toastify({
+          text: `🎉 Registration successful! Verify your email and pay ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} for Level ${level}.`,
+          style: { background: "linear-gradient(to right, #00b09b, #96c93d)" },
+          duration: 4000
+        }).showToast();
 
-        console.log('🧪 Validating fields:', { fullName, username, email, phone, password, level });
-
-        // Basic validation
-        if (!fullName || !username || !email || !phone || !password || !level) {
-            const missingFields = [
-                !fullName && 'Full Name',
-                !username && 'Username',
-                !email && 'Email',
-                !phone && 'Phone',
-                !password && 'Password',
-                !level && 'Level'
-            ].filter(Boolean).join(', ');
-            console.warn('⚠️ Missing fields:', missingFields);
-            notification.textContent = `Please fill in all required fields: ${missingFields}.`;
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            resetSubmitButton();
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            console.warn('⚠️ Invalid email:', email);
-            notification.textContent = 'Please enter a valid email address.';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            resetSubmitButton();
-            return;
-        }
-
-        const phoneRegex = /^[0-9]{10,15}$/;
-        if (!phoneRegex.test(phone)) {
-            console.warn('⚠️ Invalid phone:', phone);
-            notification.textContent = 'Please enter a valid phone number (10-15 digits).';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            resetSubmitButton();
-            return;
-        }
-
-        const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-        if (referralCode && (!usernameRegex.test(referralCode) || referralCode === 'undefined')) {
-            console.warn('⚠️ Invalid referral code:', referralCode);
-            notification.textContent = 'Invalid referral code format.';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            resetSubmitButton();
-            return;
-        }
-
-        const isUsernameAvailable = await checkUsername(username);
-        if (!isUsernameAvailable) {
-            usernameError.style.display = 'block';
-            notification.textContent = 'Username already taken.';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            resetSubmitButton();
-            return;
-        } else {
-            usernameError.style.display = 'none';
-        }
-
-        // Submit to backend
-        try {
-            console.log('📤 Sending signup payload:', {
-                fullName, username, email, phone, password, referralCode, level, amount
-            });
-
-            const res = await fetch(`${API_URL}/api/users/signup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
-            });
-
-            const data = await res.json().catch(err => {
-                console.error('❌ Failed to parse JSON:', err);
-                return { message: 'Invalid server response' };
-            });
-
-            console.log('📬 API Response:', { status: res.status, data });
-
-            if (res.ok) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('userId', data.user?.id);
-                socket.emit('join-room', data.user?.id);
-                notification.textContent = `Registration successful! Please verify your email and pay ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} for Level ${level}.`;
-                notification.classList.add('success');
-                notification.style.display = 'block';
-                setTimeout(() => window.location.href = 'verify-email.html', 3000);
-            } else {
-                notification.textContent = data.message || 'Registration failed.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                resetSubmitButton();
-            }
-        } catch (err) {
-            console.error('🔥 Network/Server error:', err);
-            notification.textContent = 'Server error. Please try again.';
-            notification.classList.add('error');
-            notification.style.display = 'block';
-            resetSubmitButton();
-        }
-    });
-
-    function resetSubmitButton() {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
         setTimeout(() => {
-            notification.style.display = 'none';
-        }, 3000);
+          window.location.href = 'verify-email.html';
+        }, 3500);
+      } else {
+        Toastify({
+          text: data.message || '⚠️ Registration failed',
+          style: { background: "linear-gradient(to right, #f00, #a00)" },
+          duration: 3000
+        }).showToast();
+        resetButton();
+      }
+    } catch (err) {
+      console.error('❌ Signup error:', err);
+      Toastify({
+        text: 'Network or server error. Try again later.',
+        style: { background: "linear-gradient(to right, #f00, #a00)" },
+        duration: 3000
+      }).showToast();
+      resetButton();
     }
+  });
+
+  function resetButton() {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `<i class="fas fa-user-plus"></i> Register`;
+  }
 }
 
 
