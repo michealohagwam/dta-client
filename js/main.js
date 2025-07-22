@@ -2,6 +2,7 @@
 const API_URL = 'https://dta-backend-clean.onrender.com';
 const socket = io(API_URL);
 
+
 // Socket.IO error handling
 socket.on('connect_error', (err) => {
     console.error('Socket.IO connection error:', err);
@@ -1064,7 +1065,6 @@ function initRegisterPage() {
   const referralInput = document.getElementById('signup-referral');
   const levelInput = document.getElementById('signup-level');
   const usernameError = document.getElementById('username-error');
-  const notification = document.getElementById('register-notification');
   const submitBtn = form.querySelector('button[type="submit"]');
 
   if (!form) {
@@ -1072,7 +1072,7 @@ function initRegisterPage() {
     return;
   }
 
-  // Username availability check
+  // 🔍 Username availability check
   usernameInput.addEventListener('blur', async () => {
     const username = usernameInput.value.trim();
     if (username.length < 3) return;
@@ -1092,9 +1092,10 @@ function initRegisterPage() {
     }
   });
 
-  // Form submission
+  // 🧾 Form submission handler
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Registering...`;
 
@@ -1117,7 +1118,17 @@ function initRegisterPage() {
       return;
     }
 
-    const payload = { fullName, username, email, phone, password, referralCode, level, amount };
+    const payload = {
+      fullName,
+      username,
+      email,
+      phone,
+      password,
+      referralCode,
+      level,
+      amount
+    };
+
     console.log('🟡 Sending registration payload:', payload);
 
     try {
@@ -1136,13 +1147,13 @@ function initRegisterPage() {
         socket.emit('join-room', data.user.id);
 
         Toastify({
-          text: `🎉 Registration successful! Verify your email and pay ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} for Level ${level}.`,
+          text: `🎉 Registration successful! Proceed to login.`,
           style: { background: "linear-gradient(to right, #00b09b, #96c93d)" },
           duration: 4000
         }).showToast();
 
         setTimeout(() => {
-          window.location.href = 'verify-email.html';
+          window.location.href = 'login.html';
         }, 3500);
       } else {
         Toastify({
@@ -1168,6 +1179,11 @@ function initRegisterPage() {
     submitBtn.innerHTML = `<i class="fas fa-user-plus"></i> Register`;
   }
 }
+
+// 📦 Call it after DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+  initRegisterPage();
+});
 
 
 // Referrals Page initialization
