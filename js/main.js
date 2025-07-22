@@ -1050,6 +1050,8 @@ async function checkUsername(username) {
     }
 }
 
+
+// Registration Page initialization
 async function initRegisterPage() {
     const registerForm = document.getElementById('signup-form');
     const notification = document.getElementById('register-notification') || document.getElementById('notification');
@@ -1059,7 +1061,7 @@ async function initRegisterPage() {
     const referralInput = document.getElementById('signup-referral');
 
     if (!registerForm || !submitBtn || !notification) {
-        console.error('Required elements missing:', { registerForm, submitBtn, notification });
+        console.error('❌ Required elements missing:', { registerForm, submitBtn, notification });
         if (notification) {
             notification.textContent = 'Form setup error. Please refresh the page.';
             notification.classList.add('error');
@@ -1069,19 +1071,18 @@ async function initRegisterPage() {
         return;
     }
 
-    // Ensure submit button is enabled by default (no modal)
     submitBtn.disabled = false;
     submitBtn.style.opacity = '1';
     submitBtn.style.cursor = 'pointer';
 
     // Handle referral link from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const referralCode = urlParams.get('ref');
-    if (referralCode && referralInput) {
-        referralInput.value = referralCode;
+    const referralCodeFromURL = urlParams.get('ref');
+    if (referralCodeFromURL && referralInput) {
+        referralInput.value = referralCodeFromURL;
     }
 
-    // Username availability check (debounced)
+    // Username availability check
     if (usernameInput && usernameError) {
         const validateUsername = debounce(async (username) => {
             if (!username) {
@@ -1094,7 +1095,6 @@ async function initRegisterPage() {
         usernameInput.addEventListener('input', (e) => validateUsername(e.target.value.trim()));
     }
 
-    // Form submission
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         submitBtn.disabled = true;
@@ -1109,93 +1109,91 @@ async function initRegisterPage() {
         const level = parseInt(document.getElementById('signup-level')?.value) || 1;
         const amount = 15000 * Math.pow(2, level - 1);
 
-        // Enhanced validation
+        console.log('🧪 Validating fields:', { fullName, username, email, phone, password, level });
+
+        // Basic validation
         if (!fullName || !username || !email || !phone || !password || !level) {
-            notification.textContent = `Please fill in all required fields. Missing: ${[
+            const missingFields = [
                 !fullName && 'Full Name',
                 !username && 'Username',
                 !email && 'Email',
                 !phone && 'Phone',
                 !password && 'Password',
                 !level && 'Level'
-            ].filter(Boolean).join(', ')}.`;
+            ].filter(Boolean).join(', ');
+            console.warn('⚠️ Missing fields:', missingFields);
+            notification.textContent = `Please fill in all required fields: ${missingFields}.`;
             notification.classList.add('error');
             notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Register';
-            }, 3000);
+            resetSubmitButton();
             return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
+            console.warn('⚠️ Invalid email:', email);
             notification.textContent = 'Please enter a valid email address.';
             notification.classList.add('error');
             notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Register';
-            }, 3000);
+            resetSubmitButton();
             return;
         }
 
         const phoneRegex = /^[0-9]{10,15}$/;
         if (!phoneRegex.test(phone)) {
-            notification.textContent = 'Please enter a valid phone number (10-15 digits, numbers only).';
+            console.warn('⚠️ Invalid phone:', phone);
+            notification.textContent = 'Please enter a valid phone number (10-15 digits).';
             notification.classList.add('error');
             notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Register';
-            }, 3000);
+            resetSubmitButton();
             return;
         }
 
         const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
         if (referralCode && (!usernameRegex.test(referralCode) || referralCode === 'undefined')) {
+            console.warn('⚠️ Invalid referral code:', referralCode);
             notification.textContent = 'Invalid referral code format.';
             notification.classList.add('error');
             notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Register';
-            }, 3000);
+            resetSubmitButton();
             return;
         }
 
         const isUsernameAvailable = await checkUsername(username);
         if (!isUsernameAvailable) {
             usernameError.style.display = 'block';
-            notification.textContent = 'Username already taken. Please choose another.';
+            notification.textContent = 'Username already taken.';
             notification.classList.add('error');
             notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Register';
-            }, 3000);
+            resetSubmitButton();
             return;
         } else {
             usernameError.style.display = 'none';
         }
 
+        // Submit to backend
         try {
-            console.log('Sending signup payload:', { fullName, username, email, phone, password, referralCode, level, amount });
-            const response = await fetchJSON(`${API_URL}/api/users/signup`, {
+            console.log('📤 Sending signup payload:', {
+                fullName, username, email, phone, password, referralCode, level, amount
+            });
+
+            const res = await fetch(`${API_URL}/api/users/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fullName, username, email, phone, password, referralCode, level, amount })
             });
-            const data = await response.json();
-            if (response.ok) {
+
+            const data = await res.json().catch(err => {
+                console.error('❌ Failed to parse JSON:', err);
+                return { message: 'Invalid server response' };
+            });
+
+            console.log('📬 API Response:', { status: res.status, data });
+
+            if (res.ok) {
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('userId', data.user.id);
-                socket.emit('join-room', data.user.id);
+                localStorage.setItem('userId', data.user?.id);
+                socket.emit('join-room', data.user?.id);
                 notification.textContent = `Registration successful! Please verify your email and pay ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} for Level ${level}.`;
                 notification.classList.add('success');
                 notification.style.display = 'block';
@@ -1204,25 +1202,26 @@ async function initRegisterPage() {
                 notification.textContent = data.message || 'Registration failed.';
                 notification.classList.add('error');
                 notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Register';
-                }, 3000);
+                resetSubmitButton();
             }
         } catch (err) {
-            console.error('Registration failed:', err);
+            console.error('🔥 Network/Server error:', err);
             notification.textContent = 'Server error. Please try again.';
             notification.classList.add('error');
             notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Register';
-            }, 3000);
+            resetSubmitButton();
         }
     });
+
+    function resetSubmitButton() {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Register';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 3000);
+    }
 }
+
 
 // Referrals Page initialization
 async function initReferralsPage() {
