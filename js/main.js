@@ -1187,128 +1187,140 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 // Referrals Page initialization
-function initRegisterPage() {
-  console.log('✅ initRegisterPage loaded');
+async function initReferralsPage() {
+    const token = getToken();
+    if (!token) {
+        alert('Please log in to access this page.');
+        window.location.href = 'login.html';
+        return;
+    }
 
-  const form = document.getElementById('signup-form');
-  const nameInput = document.getElementById('signup-name');
-  const usernameInput = document.getElementById('signup-username');
-  const emailInput = document.getElementById('signup-email');
-  const phoneInput = document.getElementById('signup-phone');
-  const passwordInput = document.getElementById('signup-password');
-  const referralInput = document.getElementById('signup-referral');
-  const levelInput = document.getElementById('signup-level');
-  const usernameError = document.getElementById('username-error');
-  const notification = document.getElementById('register-notification');
-  const submitBtn = form.querySelector('button[type="submit"]');
-
-  if (!form) {
-    console.error('❌ signup-form not found');
-    return;
-  }
-
-  // Autofill referral code from localStorage
-  const storedReferral = localStorage.getItem('referral');
-  if (storedReferral && referralInput) {
-    referralInput.value = storedReferral;
-    localStorage.removeItem('referral');
-  }
-
-  // Username availability check
-  usernameInput.addEventListener('blur', async () => {
-    const username = usernameInput.value.trim();
-    if (username.length < 3) return;
+    let referralStats = {};
+    let referredUsers = [];
+    const notification = document.getElementById('referral-notification');
 
     try {
-      const res = await fetch(`${API_URL}/api/users/check-username/${username}`);
-      const data = await res.json();
-      if (!data.available) {
-        usernameError.style.display = 'block';
-        usernameInput.classList.add('error');
-      } else {
-        usernameError.style.display = 'none';
-        usernameInput.classList.remove('error');
-      }
+        const [statsRes, usersRes] = await Promise.all([
+            fetchJSON(`${API_URL}/api/users/referrals/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetchJSON(`${API_URL}/api/users/referrals`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
+        if (!statsRes.ok || !usersRes.ok) throw new Error('Failed to fetch referral data');
+        referralStats = await statsRes.json();
+        referredUsers = await usersRes.json();
     } catch (err) {
-      console.error('Error checking username:', err);
-    }
-  });
-
-  // Form submission
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Registering...`;
-
-    const fullName = nameInput.value.trim();
-    const username = usernameInput.value.trim();
-    const email = emailInput.value.trim();
-    const phone = phoneInput.value.trim();
-    const password = passwordInput.value.trim();
-    const referralCode = referralInput.value.trim().replace(/^@/, '');
-    const level = parseInt(levelInput.value);
-    const amount = level * 15000;
-
-    if (!fullName || !username || !email || !phone || !password || !level) {
-      Toastify({
-        text: "Please fill in all required fields",
-        style: { background: "linear-gradient(to right, #f00, #a00)" },
-        duration: 3000
-      }).showToast();
-      resetButton();
-      return;
+        console.error('Error fetching referral data:', err);
+        if (notification) {
+            notification.textContent = 'Error loading referral data. Please try again.';
+            notification.classList.add('error');
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 3000);
+        }
+        return;
     }
 
-    const payload = { fullName, username, email, phone, password, referralCode, level, amount };
-    console.log('🟡 Sending registration payload:', payload);
-
-    try {
-      const res = await fetch(`${API_URL}/api/users/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      console.log('🟢 Signup response:', data);
-
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data.user.id);
-        socket.emit('join-room', data.user.id);
-
-        Toastify({
-          text: `🎉 Registration successful! Verify your email and pay ₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })} for Level ${level}.`,
-          style: { background: "linear-gradient(to right, #00b09b, #96c93d)" },
-          duration: 4000
-        }).showToast();
-
-        setTimeout(() => {
-          window.location.href = 'login.html';
-        }, 3500);
-      } else {
-        Toastify({
-          text: data.message || '⚠️ Registration failed',
-          style: { background: "linear-gradient(to right, #f00, #a00)" },
-          duration: 3000
-        }).showToast();
-        resetButton();
-      }
-    } catch (err) {
-      console.error('❌ Signup error:', err);
-      Toastify({
-        text: 'Network or server error. Try again later.',
-        style: { background: "linear-gradient(to right, #f00, #a00)" },
-        duration: 3000
-      }).showToast();
-      resetButton();
+    // Populate Referral Stats
+    function populateReferralStats() {
+        const referralCount = document.getElementById('referral-count');
+        const referralEarnings = document.getElementById('referral-earnings');
+        if (referralCount) referralCount.textContent = referralStats.count || 0;
+        if (referralEarnings) referralEarnings.textContent = `₦${(referralStats.earnings || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
     }
-  });
 
-  function resetButton() {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = `<i class="fas fa-user-plus"></i> Register`;
-  }
+    // Populate Referred Users List
+    function populateReferredUsers() {
+        const list = document.getElementById('referral-list');
+        if (!list) return;
+        list.innerHTML = referredUsers.length === 0 ? '<p>No referred users.</p>' : '';
+        referredUsers.forEach(user => {
+            const div = document.createElement('div');
+            div.className = 'referral-list-item';
+            div.innerHTML = `
+                <i class="fas fa-user"></i>
+                <div>
+                    <span class="label">${user.fullName}</span>
+                    <span class="value">
+                        Level: ${user.level} |
+                        Joined: ${new Date(user.createdAt).toLocaleDateString()} |
+                        Status: ${user.status === 'verified' || user.status === 'active' ? 'Verified' : 'Non-Verified'}
+                    </span>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    // Generate and Display Referral Link
+    async function generateReferralLink() {
+        const referralLink = document.getElementById('referral-link');
+        if (!referralLink) return;
+        try {
+            const response = await fetchJSON(`${API_URL}/api/users/profile`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch profile');
+            const user = await response.json();
+            const code = user.referralCode && user.referralCode !== 'undefined' && user.referralCode !== null ? user.referralCode : user.username;
+            referralLink.value = `https://dailytaskacademy.vercel.app/ref/${encodeURIComponent(code)}`;
+            console.log('Generated referral link:', referralLink.value);
+        } catch (err) {
+            console.error('Error generating referral link:', err);
+            if (notification) {
+                notification.textContent = 'Error generating referral link. Please try again.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
+            }
+        }
+    }
+
+    // Toggle visibility of referred users section
+    const toggleReferrals = () => {
+        const referredUsersSection = document.getElementById('referred-users');
+        if (referredUsersSection) {
+            referredUsersSection.style.display = referredUsersSection.style.display === 'none' ? 'block' : 'none';
+        }
+    };
+
+    const toggleLabel = document.getElementById('toggle-referrals-label');
+    const toggleCount = document.getElementById('referral-count');
+    if (toggleLabel && toggleCount) {
+        toggleLabel.addEventListener('click', toggleReferrals);
+        toggleCount.addEventListener('click', toggleReferrals);
+    }
+
+    // Copy Referral Link to Clipboard
+    const copyLinkBtn = document.getElementById('copy-link-btn');
+    if (copyLinkBtn && notification) {
+        copyLinkBtn.addEventListener('click', () => {
+            const link = document.getElementById('referral-link');
+            if (!link || !link.value) {
+                notification.textContent = 'No referral link available to copy.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
+                return;
+            }
+            navigator.clipboard.writeText(link.value).then(() => {
+                notification.textContent = 'Referral link copied to clipboard!';
+                notification.classList.add('success');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
+            }).catch(() => {
+                notification.textContent = 'Failed to copy link. Please copy manually.';
+                notification.classList.add('error');
+                notification.style.display = 'block';
+                setTimeout(() => notification.style.display = 'none', 3000);
+            });
+        });
+    }
+
+    populateReferralStats();
+    populateReferredUsers();
+    generateReferralLink();
 }
 
 // Upgrade Page initialization
