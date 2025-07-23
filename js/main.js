@@ -249,79 +249,108 @@ function initFaqPage() {
 
 // Login Page initialization and Socket.IO connection
 function initLoginPage() {
-    const loginForm = document.getElementById('login-form');
-    const notification = document.getElementById('login-notification');
-    const forgotLink = document.getElementById('forgot-password');
+  const loginForm = document.getElementById('login-form');
+  const forgotLink = document.getElementById('forgot-password');
+  const togglePassword = document.querySelector('.toggle-password');
 
-    if (loginForm && notification) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = loginForm.querySelector('button');
-            submitBtn.disabled = true;
-            const email = document.getElementById('login-email')?.value.trim();
-            const password = document.getElementById('login-password')?.value.trim();
+  if (togglePassword) {
+    togglePassword.addEventListener('click', () => {
+      const passwordInput = document.getElementById('login-password');
+      const icon = togglePassword.querySelector('i');
+      const isHidden = passwordInput.type === 'password';
+      passwordInput.type = isHidden ? 'text' : 'password';
+      icon.className = isHidden ? 'fa fa-eye-slash' : 'fa fa-eye';
+    });
+  }
 
-            if (!email || !password) {
-                notification.textContent = 'Please fill all required fields';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-                return;
-            }
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-            try {
-                const response = await fetchJSON(`${API_URL}/api/users/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await response.json();
+      const submitBtn = loginForm.querySelector('button');
+      const spinner = submitBtn.querySelector('.spinner');
+      const btnText = submitBtn.querySelector('.btn-text');
+      submitBtn.disabled = true;
+      spinner.style.display = 'inline-block';
+      btnText.textContent = 'Logging in...';
 
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    if (data.user && data.user.id) {
-                        localStorage.setItem('userId', data.user.id);
-                        socket.emit('join-room', data.user.id);
-                    }
-                    notification.textContent = 'Login successful!';
-                    notification.classList.add('success');
-                    notification.style.display = 'block';
-                    setTimeout(() => window.location.href = 'dashboard.html', 3000);
-                } else {
-                    notification.textContent = data.message || 'Invalid email or password';
-                    notification.classList.add('error');
-                    notification.style.display = 'block';
-                    setTimeout(() => {
-                        notification.style.display = 'none';
-                        submitBtn.disabled = false;
-                    }, 3000);
-                }
-            } catch (err) {
-                notification.textContent = 'Server error. Please try again.';
-                notification.classList.add('error');
-                notification.style.display = 'block';
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                    submitBtn.disabled = false;
-                }, 3000);
-                console.error('Login error:', err);
-            }
+      const emailOrUsername = document.getElementById('login-emailOrUsername')?.value.trim();
+      const password = document.getElementById('login-password')?.value.trim();
+
+      if (!emailOrUsername || !password) {
+        Toastify({
+          text: "Please fill all required fields",
+          style: { background: "linear-gradient(to right, #f00, #c00)" },
+          duration: 3000
+        }).showToast();
+
+        spinner.style.display = 'none';
+        btnText.textContent = 'Login';
+        submitBtn.disabled = false;
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/users/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emailOrUsername, password })
         });
-    }
 
-    if (forgotLink && notification) {
-        forgotLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            notification.textContent = 'Password reset is not yet implemented.';
-            notification.classList.add('info');
-            notification.style.display = 'block';
-            setTimeout(() => notification.style.display = 'none', 2000);
-        });
-    }
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.setItem('token', data.token);
+          if (data.user && data.user.id) {
+            localStorage.setItem('userId', data.user.id);
+            socket.emit('join-room', data.user.id);
+          }
+
+          Toastify({
+            text: "✅ Login successful!",
+            style: { background: "green" },
+            duration: 2000
+          }).showToast();
+
+          setTimeout(() => window.location.href = 'dashboard.html', 2000);
+        } else {
+          Toastify({
+            text: data.message || "Invalid credentials",
+            style: { background: "red" },
+            duration: 3000
+          }).showToast();
+          spinner.style.display = 'none';
+          btnText.textContent = 'Login';
+          submitBtn.disabled = false;
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        Toastify({
+          text: "Server error. Try again later.",
+          style: { background: "darkred" },
+          duration: 3000
+        }).showToast();
+        spinner.style.display = 'none';
+        btnText.textContent = 'Login';
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  if (forgotLink) {
+    forgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      Toastify({
+        text: "🔧 Password reset is not yet implemented.",
+        duration: 3000,
+        style: { background: "#444" }
+      }).showToast();
+    });
+  }
+
+  console.log("✅ initLoginPage loaded");
 }
+
 
 // Privacy Page initialization
 function initPrivacyPage() {
