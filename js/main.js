@@ -252,17 +252,21 @@ function initLoginPage() {
   const loginForm = document.getElementById('login-form');
   const forgotLink = document.getElementById('forgot-password');
   const togglePassword = document.querySelector('.toggle-password');
+  const passwordInput = document.getElementById('login-password');
 
-  if (togglePassword) {
+  // Password visibility toggle logic
+  if (togglePassword && passwordInput) {
     togglePassword.addEventListener('click', () => {
-      const passwordInput = document.getElementById('login-password');
       const icon = togglePassword.querySelector('i');
       const isHidden = passwordInput.type === 'password';
       passwordInput.type = isHidden ? 'text' : 'password';
       icon.className = isHidden ? 'fa fa-eye-slash' : 'fa fa-eye';
     });
+  } else {
+    console.warn("Password toggle element or password input missing.");
   }
 
+  // Form submit logic
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -270,16 +274,26 @@ function initLoginPage() {
       const submitBtn = loginForm.querySelector('button');
       const spinner = submitBtn.querySelector('.spinner');
       const btnText = submitBtn.querySelector('.btn-text');
+      const emailInput = document.getElementById('login-emailOrUsername');
+      const password = passwordInput?.value.trim();
+
+      if (!emailInput || !passwordInput) {
+        console.error("Missing email or password input fields.");
+        return;
+      }
+
+      const emailOrUsername = emailInput.value.trim();
+
+      console.log("🔄 Sending login request:", { emailOrUsername, password });
+      console.log("🔗 Login API URL:", `${API_URL}/api/users/login`);
+
       submitBtn.disabled = true;
       spinner.style.display = 'inline-block';
       btnText.textContent = 'Logging in...';
 
-      const emailOrUsername = document.getElementById('login-emailOrUsername')?.value.trim();
-      const password = document.getElementById('login-password')?.value.trim();
-
       if (!emailOrUsername || !password) {
         Toastify({
-          text: "Please fill all required fields",
+          text: "⚠️ Please fill all required fields",
           style: { background: "linear-gradient(to right, #f00, #c00)" },
           duration: 3000
         }).showToast();
@@ -299,11 +313,16 @@ function initLoginPage() {
 
         const data = await response.json();
 
+        console.log("📥 Response status:", response.status);
+        console.log("📥 Response data:", data);
+
         if (response.ok) {
           localStorage.setItem('token', data.token);
           if (data.user && data.user.id) {
             localStorage.setItem('userId', data.user.id);
-            socket.emit('join-room', data.user.id);
+            if (typeof socket !== 'undefined') {
+              socket.emit('join-room', data.user.id);
+            }
           }
 
           Toastify({
@@ -315,7 +334,7 @@ function initLoginPage() {
           setTimeout(() => window.location.href = 'dashboard.html', 2000);
         } else {
           Toastify({
-            text: data.message || "Invalid credentials",
+            text: data.message || "❌ Invalid credentials",
             style: { background: "red" },
             duration: 3000
           }).showToast();
@@ -324,7 +343,7 @@ function initLoginPage() {
           submitBtn.disabled = false;
         }
       } catch (err) {
-        console.error('Login error:', err);
+        console.error('💥 Login error:', err);
         Toastify({
           text: "Server error. Try again later.",
           style: { background: "darkred" },
@@ -337,6 +356,7 @@ function initLoginPage() {
     });
   }
 
+  // Forgot password logic
   if (forgotLink) {
     forgotLink.addEventListener('click', (e) => {
       e.preventDefault();
@@ -351,16 +371,6 @@ function initLoginPage() {
   console.log("✅ initLoginPage loaded");
 }
 
-
-// Privacy Page initialization
-function initPrivacyPage() {
-    const backHome = document.querySelector('.back-home');
-    if (backHome) {
-        backHome.addEventListener('click', () => {
-            window.location.href = 'index.html';
-        });
-    }
-}
 
 // Terms Page initialization
 function initTermsPage() {
