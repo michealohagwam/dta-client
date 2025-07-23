@@ -247,26 +247,38 @@ function initFaqPage() {
     }
 }
 
-// Login Page initialization and Socket.IO connection
+
+// === Utility Toast Function ===
+function showToast(message, type = 'info') {
+  Toastify({
+    text: message,
+    duration: 3000,
+    style: {
+      background: type === 'success' ? 'green' :
+                  type === 'error' ? 'red' :
+                  type === 'warn' ? 'orange' : '#444'
+    }
+  }).showToast();
+}
+
+// === Login Page Init ===
 function initLoginPage() {
+  console.log("✅ initLoginPage loaded");
+
   const loginForm = document.getElementById('login-form');
   const forgotLink = document.getElementById('forgot-password');
   const togglePassword = document.querySelector('.toggle-password');
-  const passwordInput = document.getElementById('login-password');
 
-  // Password visibility toggle logic
-  if (togglePassword && passwordInput) {
+  if (togglePassword) {
     togglePassword.addEventListener('click', () => {
+      const passwordInput = document.getElementById('login-password');
       const icon = togglePassword.querySelector('i');
       const isHidden = passwordInput.type === 'password';
       passwordInput.type = isHidden ? 'text' : 'password';
       icon.className = isHidden ? 'fa fa-eye-slash' : 'fa fa-eye';
     });
-  } else {
-    console.warn("Password toggle element or password input missing.");
   }
 
-  // Form submit logic
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -274,30 +286,18 @@ function initLoginPage() {
       const submitBtn = loginForm.querySelector('button');
       const spinner = submitBtn.querySelector('.spinner');
       const btnText = submitBtn.querySelector('.btn-text');
-      const emailInput = document.getElementById('login-emailOrUsername');
-      const password = passwordInput?.value.trim();
-
-      if (!emailInput || !passwordInput) {
-        console.error("Missing email or password input fields.");
-        return;
-      }
-
-      const emailOrUsername = emailInput.value.trim();
-
-      console.log("🔄 Sending login request:", { emailOrUsername, password });
-      console.log("🔗 Login API URL:", `${API_URL}/api/users/login`);
-
       submitBtn.disabled = true;
       spinner.style.display = 'inline-block';
       btnText.textContent = 'Logging in...';
 
-      if (!emailOrUsername || !password) {
-        Toastify({
-          text: "⚠️ Please fill all required fields",
-          style: { background: "linear-gradient(to right, #f00, #c00)" },
-          duration: 3000
-        }).showToast();
+      const emailOrUsername = document.getElementById('login-emailOrUsername')?.value.trim();
+      const password = document.getElementById('login-password')?.value.trim();
 
+      console.log("Sending login request:", { emailOrUsername, password });
+      console.log("Login API URL:", `${API_URL}/api/users/login`);
+
+      if (!emailOrUsername || !password) {
+        showToast("Please fill all required fields", 'error');
         spinner.style.display = 'none';
         btnText.textContent = 'Login';
         submitBtn.disabled = false;
@@ -313,42 +313,24 @@ function initLoginPage() {
 
         const data = await response.json();
 
-        console.log("📥 Response status:", response.status);
-        console.log("📥 Response data:", data);
-
         if (response.ok) {
           localStorage.setItem('token', data.token);
           if (data.user && data.user.id) {
             localStorage.setItem('userId', data.user.id);
-            if (typeof socket !== 'undefined') {
-              socket.emit('join-room', data.user.id);
-            }
+            socket.emit('join-room', data.user.id);
           }
 
-          Toastify({
-            text: "✅ Login successful!",
-            style: { background: "green" },
-            duration: 2000
-          }).showToast();
-
+          showToast("✅ Login successful!", 'success');
           setTimeout(() => window.location.href = 'dashboard.html', 2000);
         } else {
-          Toastify({
-            text: data.message || "❌ Invalid credentials",
-            style: { background: "red" },
-            duration: 3000
-          }).showToast();
+          showToast(data.message || "Invalid credentials", 'error');
           spinner.style.display = 'none';
           btnText.textContent = 'Login';
           submitBtn.disabled = false;
         }
       } catch (err) {
-        console.error('💥 Login error:', err);
-        Toastify({
-          text: "Server error. Try again later.",
-          style: { background: "darkred" },
-          duration: 3000
-        }).showToast();
+        console.error('Login error:', err);
+        showToast("Server error. Try again later.", 'error');
         spinner.style.display = 'none';
         btnText.textContent = 'Login';
         submitBtn.disabled = false;
@@ -356,20 +338,51 @@ function initLoginPage() {
     });
   }
 
-  // Forgot password logic
   if (forgotLink) {
     forgotLink.addEventListener('click', (e) => {
       e.preventDefault();
-      Toastify({
-        text: "🔧 Password reset is not yet implemented.",
-        duration: 3000,
-        style: { background: "#444" }
-      }).showToast();
+      showToast("🔧 Password reset is not yet implemented.", 'info');
     });
   }
-
-  console.log("✅ initLoginPage loaded");
 }
+
+// === Register Page Stub (keep this if needed) ===
+function initRegisterPage() {
+  console.log("✅ initRegisterPage loaded");
+  // Registration logic here...
+}
+
+// === Privacy Page Init ===
+function initPrivacyPage() {
+  console.log("✅ initPrivacyPage loaded");
+  const backHome = document.querySelector('.back-home');
+  if (backHome) {
+    backHome.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+  }
+}
+
+// === Page Router ===
+document.addEventListener("DOMContentLoaded", () => {
+  const page = document.body.getAttribute('data-page');
+
+  switch (page) {
+    case 'login':
+      initLoginPage();
+      break;
+    case 'register':
+      initRegisterPage();
+      break;
+    case 'privacy':
+      initPrivacyPage();
+      break;
+    // Add other page inits here...
+    default:
+      console.warn("⚠️ No init function matched for:", page);
+  }
+});
+
 
 
 // Terms Page initialization
