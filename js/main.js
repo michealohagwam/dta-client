@@ -294,7 +294,7 @@ function initLoginPage() {
         const response = await fetch(`${API_URL}/api/users/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ emailOrUsername, password })
+          body: JSON.stringify({ email: emailOrUsername, password })
         });
 
         const data = await response.json();
