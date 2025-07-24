@@ -1,12 +1,18 @@
 // main.js
 const API_URL = 'https://dta-backend-clean.onrender.com';
-const socket = io(API_URL);
 
+let socket;
+try {
+  socket = io(API_URL);
 
-// Socket.IO error handling
-socket.on('connect_error', (err) => {
+  // Socket.IO error handling
+  socket.on('connect_error', (err) => {
     console.error('Socket.IO connection error:', err);
-});
+  });
+} catch (err) {
+  console.warn('⚠️ Socket.IO not initialized:', err.message);
+}
+
 
 // Utility function for fetching JSON responses
 async function fetchJSON(url, options) {
