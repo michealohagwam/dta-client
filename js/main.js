@@ -1651,51 +1651,58 @@ function showNotification(element, message, type) {
 }
 
 // === Reset Password Page ===
-function initForgotPasswordPage() {
-  const forgotForm = document.getElementById('forgot-password-form');
-  const notification = document.getElementById('forgot-notification');
+function initResetPasswordPage() {
+  const form = document.getElementById('reset-password-form');
+  const notification = document.getElementById('global-notification');
 
-  if (forgotForm && notification) {
-    forgotForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
 
-      const emailInput = document.getElementById('forgot-email');
-      const email = emailInput.value.trim();
-
-      if (!email) {
-        notification.textContent = 'Please enter your email address.';
-        notification.className = 'notification error';
-        notification.style.display = 'block';
-        return;
-      }
-
-      try {
-        const res = await fetch(`${API_URL}/api/users/forgot-password`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          notification.textContent = '✅ Reset link sent to your email.';
-          notification.className = 'notification success';
-        } else {
-          notification.textContent = data.message || '❌ Failed to send reset link.';
-          notification.className = 'notification error';
-        }
-
-        notification.style.display = 'block';
-      } catch (err) {
-        notification.textContent = '❌ Network error.';
-        notification.className = 'notification error';
-        notification.style.display = 'block';
-      }
-    });
+  if (!token) {
+    notification.textContent = '❌ Invalid or missing token';
+    notification.className = 'notification error';
+    notification.style.display = 'block';
+    form.style.display = 'none';
+    return;
   }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = document.getElementById('reset-password').value.trim();
+    const confirm = document.getElementById('confirm-password').value.trim();
+
+    if (!password || password !== confirm) {
+      notification.textContent = '❌ Passwords do not match';
+      notification.className = 'notification error';
+      notification.style.display = 'block';
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/users/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword: password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        notification.textContent = '✅ Password reset successful!';
+        notification.className = 'notification success';
+        form.style.display = 'none';
+      } else {
+        notification.textContent = data.message || '❌ Error resetting password.';
+        notification.className = 'notification error';
+      }
+
+      notification.style.display = 'block';
+    } catch (err) {
+      notification.textContent = '❌ Network error';
+      notification.className = 'notification error';
+      notification.style.display = 'block';
+    }
+  });
 }
 
 
