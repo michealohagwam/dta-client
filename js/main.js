@@ -371,6 +371,9 @@ document.addEventListener("DOMContentLoaded", () => {
     case 'privacy':
       initPrivacyPage();
       break;
+    case 'forgot':
+      initForgotPasswordPage();
+      break;
     // Add other page inits here...
     default:
       console.warn("⚠️ No init function matched for:", page);
@@ -1612,14 +1615,16 @@ function initForgotPasswordPage() {
       const email = emailInput.value.trim();
 
       if (!email) {
-        showNotification(notification, 'Please enter your email address.', 'error');
+        showNotification(notification, '❌ Please enter your email address.', 'error');
         return;
       }
 
       try {
         const res = await fetch(`${API_URL}/api/users/forgot-password`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({ email })
         });
 
@@ -1627,14 +1632,22 @@ function initForgotPasswordPage() {
 
         if (res.ok) {
           showNotification(notification, '✅ Reset link sent to your email.', 'success');
+          emailInput.value = ''; // optional: clear field
         } else {
           showNotification(notification, data.message || '❌ Failed to send reset link.', 'error');
         }
       } catch (err) {
-        showNotification(notification, '❌ Network error.', 'error');
+        showNotification(notification, '❌ Network error. Please try again.', 'error');
       }
     });
   }
+}
+
+// === Helper: Toast or inline notification ===
+function showNotification(element, message, type) {
+  element.textContent = message;
+  element.className = `notification ${type}`; // e.g., 'notification success' or 'notification error'
+  element.style.display = 'block';
 }
 
 // === Reset Password Page ===
