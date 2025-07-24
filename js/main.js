@@ -1604,29 +1604,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Reset Password Page initialization
-function initResetPage() {
-    const resetForm = document.getElementById('reset-password');
-    const notification = document.getElementById('reset-notification');
-    if (resetForm && notification) {
-        notification.textContent = 'Password reset is not yet implemented.';
-        notification.classList.add('info');
-        notification.style.display = 'block';
-        setTimeout(() => window.location.href = 'login.html', 3000);
-    }
-}
-
 // Forgot Password Page initialization
 function initForgotPasswordPage() {
     const forgotForm = document.getElementById('forgot-password-form');
     const notification = document.getElementById('forgot-notification');
+
     if (forgotForm && notification) {
-        notification.textContent = 'Password reset is not yet implemented.';
-        notification.classList.add('info');
-        notification.style.display = 'block';
-        setTimeout(() => window.location.href = 'login.html', 3000);
+        forgotForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const emailInput = document.getElementById('forgot-email');
+            const email = emailInput.value.trim();
+
+            if (!email) return;
+
+            try {
+                const res = await fetch('https://dailytaskacademy.onrender.com/api/users/forgot-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    notification.textContent = '✅ Reset link sent to your email.';
+                    notification.className = 'notification success';
+                } else {
+                    notification.textContent = data.message || '❌ Failed to send reset link.';
+                    notification.className = 'notification error';
+                }
+
+                notification.style.display = 'block';
+            } catch (err) {
+                notification.textContent = '❌ Network error.';
+                notification.className = 'notification error';
+                notification.style.display = 'block';
+            }
+        });
     }
 }
+
+// Reset Password Page initialization
+function initResetPage() {
+    const resetForm = document.getElementById('reset-password-form');
+    const notification = document.getElementById('global-notification');
+
+    if (resetForm && notification) {
+        resetForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const newPassword = document.getElementById('reset-password').value;
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token'); // Assuming reset link looks like: reset.html?token=xxx
+
+            if (!token || !newPassword) return;
+
+            try {
+                const res = await fetch('https://dailytaskacademy.onrender.com/api/users/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token, newPassword })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    notification.textContent = '✅ Password reset successful!';
+                    notification.className = 'notification success';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    notification.textContent = data.message || '❌ Failed to reset password.';
+                    notification.className = 'notification error';
+                }
+
+                notification.style.display = 'block';
+            } catch (err) {
+                notification.textContent = '❌ Network error.';
+                notification.className = 'notification error';
+                notification.style.display = 'block';
+            }
+        });
+    }
+}
+
 
 // Transactions Page initialization
 async function initTransactionsPage() {
