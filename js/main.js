@@ -1638,61 +1638,53 @@ function initForgotPasswordPage() {
 }
 
 // === Reset Password Page ===
-function initResetPage() {
-  const resetForm = document.getElementById('reset-password-form');
-  const notification = document.getElementById('global-notification');
+function initForgotPasswordPage() {
+  const forgotForm = document.getElementById('forgot-password-form');
+  const notification = document.getElementById('forgot-notification');
 
-  if (resetForm && notification) {
-    resetForm.addEventListener('submit', async function (e) {
+  if (forgotForm && notification) {
+    forgotForm.addEventListener('submit', async function (e) {
       e.preventDefault();
 
-      const newPassword = document.getElementById('reset-password').value.trim();
-      const confirmPassword = document.getElementById('confirm-password').value.trim();
-      const token = new URLSearchParams(window.location.search).get('token');
+      const emailInput = document.getElementById('forgot-email');
+      const email = emailInput.value.trim();
 
-      if (!token) {
-        showNotification(notification, '❌ Invalid or missing reset token.', 'error');
-        return;
-      }
-
-      if (!newPassword || !confirmPassword) {
-        showNotification(notification, 'Please fill in both password fields.', 'error');
-        return;
-      }
-
-      if (newPassword.length < 6) {
-        showNotification(notification, 'Password must be at least 6 characters.', 'error');
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        showNotification(notification, 'Passwords do not match.', 'error');
+      if (!email) {
+        notification.textContent = 'Please enter your email address.';
+        notification.className = 'notification error';
+        notification.style.display = 'block';
         return;
       }
 
       try {
-        const res = await fetch(`${API_URL}/api/users/reset-password`, {
+        const res = await fetch(`${API_URL}/api/users/forgot-password`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, newPassword })
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
         });
 
         const data = await res.json();
 
         if (res.ok) {
-          showNotification(notification, '✅ Password reset successful! Redirecting...', 'success');
-          setTimeout(() => {
-            window.location.href = 'login.html';
-          }, 2000);
+          notification.textContent = '✅ Reset link sent to your email.';
+          notification.className = 'notification success';
         } else {
-          showNotification(notification, data.message || '❌ Failed to reset password.', 'error');
+          notification.textContent = data.message || '❌ Failed to send reset link.';
+          notification.className = 'notification error';
         }
+
+        notification.style.display = 'block';
       } catch (err) {
-        showNotification(notification, '❌ Network error.', 'error');
+        notification.textContent = '❌ Network error.';
+        notification.className = 'notification error';
+        notification.style.display = 'block';
       }
     });
   }
 }
+
 
 // === Helper: Toast or inline notification ===
 function showNotification(element, message, type) {
