@@ -1556,30 +1556,53 @@ async function initDepositPage() {
 function initLogoutPage() {
     const logoutForm = document.getElementById('logout-form');
     const notification = document.getElementById('logout-notification');
-    const returnLink = document.getElementById('return-to-id');
+    const returnLink = document.getElementById('return-dashboard'); // ✅ fixed the ID
+
     if (logoutForm && notification) {
-        logoutForm.addEventListener('submit', async function(e) {
+        logoutForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+
             const submitBtn = logoutForm.querySelector('button');
             submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging out...';
+
+            // Remove stored auth data
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
+
+            // Notify user
             notification.textContent = 'Logged out successfully!';
             notification.classList.add('success');
             notification.style.display = 'block';
-            setTimeout(() => window.location.href = 'index.html', 2000);
+
+            // Redirect to homepage after delay
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
         });
     }
+
     if (returnLink && notification) {
         returnLink.addEventListener('click', (e) => {
             e.preventDefault();
             notification.textContent = 'Returning to dashboard...';
             notification.classList.add('info');
             notification.style.display = 'block';
-            setTimeout(() => window.location.href = 'dashboard.html', 3000);
+
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 1500);
         });
     }
 }
+
+// Make sure it runs only on logout page
+document.addEventListener('DOMContentLoaded', () => {
+    const page = document.body.getAttribute('data-page');
+    if (page === 'logout') {
+        initLogoutPage();
+    }
+});
 
 // Reset Password Page initialization
 function initResetPage() {
