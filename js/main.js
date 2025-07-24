@@ -1661,10 +1661,16 @@ function initResetPage() {
   const form = document.getElementById('reset-password-form');
   const notification = document.getElementById('global-notification');
 
-  if (!form || !notification) return;
+  console.log('🔄 initResetPage loaded');
+
+  if (!form || !notification) {
+    console.warn('⚠️ Form or notification element missing in reset page');
+    return;
+  }
 
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
+  console.log('🔐 Token from URL:', token);
 
   if (!token) {
     notification.textContent = '❌ Invalid reset link.';
@@ -1694,19 +1700,20 @@ function initResetPage() {
     }
 
     try {
+      console.log('📡 Sending password reset request...');
       const res = await fetch(`${API_URL}/api/users/reset-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword: password }),
       });
 
       const data = await res.json();
+      console.log('🔁 Server response:', data);
 
       if (res.ok) {
         notification.textContent = '✅ Password reset successful. You can now log in.';
         notification.className = 'notification success';
+        form.style.display = 'none';
       } else {
         notification.textContent = data.message || '❌ Reset failed.';
         notification.className = 'notification error';
@@ -1714,6 +1721,7 @@ function initResetPage() {
 
       notification.style.display = 'block';
     } catch (err) {
+      console.error('❌ Network or server error during reset:', err);
       notification.textContent = '❌ Network error. Please try again.';
       notification.className = 'notification error';
       notification.style.display = 'block';
