@@ -1598,202 +1598,95 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// === Main.js for DailyTask Academy ===
-
-// === Page Router ===
-document.addEventListener('DOMContentLoaded', () => {
-  const page = document.body.dataset.page;
-
-  switch (page) {
-    case 'login':
-      initLoginPage();
-      break;
-    case 'forgot':
-      initForgotPasswordPage();
-      break;
-    case 'reset':
-      initResetPage();
-      break;
-    // Add more pages as needed
-  }
-});
-
-// === Login Page Init ===
-function initLoginPage() {
-  console.log("✅ initLoginPage loaded");
-
-  const loginForm = document.getElementById('login-form');
-  const togglePassword = document.querySelector('.toggle-password');
-
-  if (togglePassword) {
-    togglePassword.addEventListener('click', () => {
-      const passwordInput = document.getElementById('login-password');
-      const icon = togglePassword.querySelector('i');
-      const isHidden = passwordInput.type === 'password';
-      passwordInput.type = isHidden ? 'text' : 'password';
-      icon.className = isHidden ? 'fa fa-eye-slash' : 'fa fa-eye';
-    });
-  }
-
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const submitBtn = loginForm.querySelector('button');
-      const spinner = submitBtn.querySelector('.spinner');
-      const btnText = submitBtn.querySelector('.btn-text');
-      submitBtn.disabled = true;
-      spinner.style.display = 'inline-block';
-      btnText.textContent = 'Logging in...';
-
-      const emailOrUsername = document.getElementById('login-emailOrUsername')?.value.trim();
-      const password = document.getElementById('login-password')?.value.trim();
-
-      if (!emailOrUsername || !password) {
-        showToast("Please fill all required fields", 'error');
-        spinner.style.display = 'none';
-        btnText.textContent = 'Login';
-        submitBtn.disabled = false;
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/api/users/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailOrUsername, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          localStorage.setItem('token', data.token);
-          if (data.user && data.user.id) {
-            localStorage.setItem('userId', data.user.id);
-            socket.emit('join-room', data.user.id);
-          }
-
-          showToast("✅ Login successful!", 'success');
-          setTimeout(() => window.location.href = 'dashboard.html', 2000);
-        } else {
-          showToast(data.message || "Invalid credentials", 'error');
-          spinner.style.display = 'none';
-          btnText.textContent = 'Login';
-          submitBtn.disabled = false;
-        }
-      } catch (err) {
-        console.error('Login error:', err);
-        showToast("Server error. Try again later.", 'error');
-        spinner.style.display = 'none';
-        btnText.textContent = 'Login';
-        submitBtn.disabled = false;
-      }
-    });
-  }
-}
-
-// === Forgot Password Page ===
+// Forgot Password Page initialization
 function initForgotPasswordPage() {
-  const forgotForm = document.getElementById('forgot-password-form');
-  const notification = document.getElementById('forgot-notification');
+    const forgotForm = document.getElementById('forgot-password-form');
+    const notification = document.getElementById('forgot-notification');
 
-  if (forgotForm && notification) {
-    forgotForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
+    if (forgotForm && notification) {
+        forgotForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
 
-      const emailInput = document.getElementById('forgot-email');
-      const email = emailInput.value.trim();
+            const emailInput = document.getElementById('forgot-email');
+            const email = emailInput.value.trim();
 
-      if (!email) {
-        showNotification(notification, 'Please enter your email address.', 'error');
-        return;
-      }
+            if (!email) return;
 
-      try {
-        const res = await fetch(`${API_URL}/api/users/forgot-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+            try {
+                const res = await fetch('https://dailytaskacademy.onrender.com/api/users/forgot-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    notification.textContent = '✅ Reset link sent to your email.';
+                    notification.className = 'notification success';
+                } else {
+                    notification.textContent = data.message || '❌ Failed to send reset link.';
+                    notification.className = 'notification error';
+                }
+
+                notification.style.display = 'block';
+            } catch (err) {
+                notification.textContent = '❌ Network error.';
+                notification.className = 'notification error';
+                notification.style.display = 'block';
+            }
         });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          showNotification(notification, '✅ Reset link sent to your email.', 'success');
-        } else {
-          showNotification(notification, data.message || '❌ Failed to send reset link.', 'error');
-        }
-      } catch (err) {
-        showNotification(notification, '❌ Network error.', 'error');
-      }
-    });
-  }
+    }
 }
 
-// === Reset Password Page ===
+// Reset Password Page initialization
 function initResetPage() {
-  const resetForm = document.getElementById('reset-password-form');
-  const notification = document.getElementById('global-notification');
+    const resetForm = document.getElementById('reset-password-form');
+    const notification = document.getElementById('global-notification');
 
-  if (resetForm && notification) {
-    resetForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
+    if (resetForm && notification) {
+        resetForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
 
-      const newPassword = document.getElementById('reset-password').value.trim();
-      const confirmPassword = document.getElementById('confirm-password').value.trim();
-      const token = new URLSearchParams(window.location.search).get('token');
+            const newPassword = document.getElementById('reset-password').value;
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token'); // Assuming reset link looks like: reset.html?token=xxx
 
-      if (!token) {
-        showNotification(notification, '❌ Invalid or missing reset token.', 'error');
-        return;
-      }
+            if (!token || !newPassword) return;
 
-      if (!newPassword || !confirmPassword) {
-        showNotification(notification, 'Please fill in both password fields.', 'error');
-        return;
-      }
+            try {
+                const res = await fetch('https://dailytaskacademy.onrender.com/api/users/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token, newPassword })
+                });
 
-      if (newPassword.length < 6) {
-        showNotification(notification, 'Password must be at least 6 characters.', 'error');
-        return;
-      }
+                const data = await res.json();
 
-      if (newPassword !== confirmPassword) {
-        showNotification(notification, 'Passwords do not match.', 'error');
-        return;
-      }
+                if (res.ok) {
+                    notification.textContent = '✅ Password reset successful!';
+                    notification.className = 'notification success';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    notification.textContent = data.message || '❌ Failed to reset password.';
+                    notification.className = 'notification error';
+                }
 
-      try {
-        const res = await fetch(`${API_URL}/api/users/reset-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, newPassword })
+                notification.style.display = 'block';
+            } catch (err) {
+                notification.textContent = '❌ Network error.';
+                notification.className = 'notification error';
+                notification.style.display = 'block';
+            }
         });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          showNotification(notification, '✅ Password reset successful! Redirecting...', 'success');
-          setTimeout(() => {
-            window.location.href = 'login.html';
-          }, 2000);
-        } else {
-          showNotification(notification, data.message || '❌ Failed to reset password.', 'error');
-        }
-      } catch (err) {
-        showNotification(notification, '❌ Network error.', 'error');
-      }
-    });
-  }
+    }
 }
-
-// === Helper: Toast or inline notification ===
-function showNotification(element, message, type) {
-  element.textContent = message;
-  element.className = `notification ${type}`; // expects .notification.success or .notification.error
-  element.style.display = 'block';
-}
-
 
 
 // Transactions Page initialization
