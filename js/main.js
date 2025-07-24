@@ -338,12 +338,6 @@ function initLoginPage() {
     });
   }
 
-  if (forgotLink) {
-    forgotLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      showToast("🔧 Password reset is not yet implemented.", 'info');
-    });
-  }
 }
 
 // === Register Page Stub (keep this if needed) ===
