@@ -261,7 +261,7 @@ function showToast(message, type = 'info') {
   }).showToast();
 }
 
-// === Login Page Init ===
+// Login Page Init ===
 function initLoginPage() {
   console.log("✅ initLoginPage loaded");
 
@@ -1598,94 +1598,107 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Forgot Password Page initialization
+
+// === Forgot Password Page ===
 function initForgotPasswordPage() {
-    const forgotForm = document.getElementById('forgot-password-form');
-    const notification = document.getElementById('forgot-notification');
+  const forgotForm = document.getElementById('forgot-password-form');
+  const notification = document.getElementById('forgot-notification');
 
-    if (forgotForm && notification) {
-        forgotForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
+  if (forgotForm && notification) {
+    forgotForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
 
-            const emailInput = document.getElementById('forgot-email');
-            const email = emailInput.value.trim();
+      const emailInput = document.getElementById('forgot-email');
+      const email = emailInput.value.trim();
 
-            if (!email) return;
+      if (!email) {
+        showNotification(notification, 'Please enter your email address.', 'error');
+        return;
+      }
 
-            try {
-                const res = await fetch('https://dailytaskacademy.onrender.com/api/users/forgot-password', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email })
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    notification.textContent = '✅ Reset link sent to your email.';
-                    notification.className = 'notification success';
-                } else {
-                    notification.textContent = data.message || '❌ Failed to send reset link.';
-                    notification.className = 'notification error';
-                }
-
-                notification.style.display = 'block';
-            } catch (err) {
-                notification.textContent = '❌ Network error.';
-                notification.className = 'notification error';
-                notification.style.display = 'block';
-            }
+      try {
+        const res = await fetch(`${API_URL}/api/users/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
         });
-    }
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showNotification(notification, '✅ Reset link sent to your email.', 'success');
+        } else {
+          showNotification(notification, data.message || '❌ Failed to send reset link.', 'error');
+        }
+      } catch (err) {
+        showNotification(notification, '❌ Network error.', 'error');
+      }
+    });
+  }
 }
 
-// Reset Password Page initialization
+// === Reset Password Page ===
 function initResetPage() {
-    const resetForm = document.getElementById('reset-password-form');
-    const notification = document.getElementById('global-notification');
+  const resetForm = document.getElementById('reset-password-form');
+  const notification = document.getElementById('global-notification');
 
-    if (resetForm && notification) {
-        resetForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
+  if (resetForm && notification) {
+    resetForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
 
-            const newPassword = document.getElementById('reset-password').value;
-            const params = new URLSearchParams(window.location.search);
-            const token = params.get('token'); // Assuming reset link looks like: reset.html?token=xxx
+      const newPassword = document.getElementById('reset-password').value.trim();
+      const confirmPassword = document.getElementById('confirm-password').value.trim();
+      const token = new URLSearchParams(window.location.search).get('token');
 
-            if (!token || !newPassword) return;
+      if (!token) {
+        showNotification(notification, '❌ Invalid or missing reset token.', 'error');
+        return;
+      }
 
-            try {
-                const res = await fetch('https://dailytaskacademy.onrender.com/api/users/reset-password', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ token, newPassword })
-                });
+      if (!newPassword || !confirmPassword) {
+        showNotification(notification, 'Please fill in both password fields.', 'error');
+        return;
+      }
 
-                const data = await res.json();
+      if (newPassword.length < 6) {
+        showNotification(notification, 'Password must be at least 6 characters.', 'error');
+        return;
+      }
 
-                if (res.ok) {
-                    notification.textContent = '✅ Password reset successful!';
-                    notification.className = 'notification success';
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                } else {
-                    notification.textContent = data.message || '❌ Failed to reset password.';
-                    notification.className = 'notification error';
-                }
+      if (newPassword !== confirmPassword) {
+        showNotification(notification, 'Passwords do not match.', 'error');
+        return;
+      }
 
-                notification.style.display = 'block';
-            } catch (err) {
-                notification.textContent = '❌ Network error.';
-                notification.className = 'notification error';
-                notification.style.display = 'block';
-            }
+      try {
+        const res = await fetch(`${API_URL}/api/users/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword })
         });
-    }
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showNotification(notification, '✅ Password reset successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = 'login.html';
+          }, 2000);
+        } else {
+          showNotification(notification, data.message || '❌ Failed to reset password.', 'error');
+        }
+      } catch (err) {
+        showNotification(notification, '❌ Network error.', 'error');
+      }
+    });
+  }
+}
+
+// === Helper: Toast or inline notification ===
+function showNotification(element, message, type) {
+  element.textContent = message;
+  element.className = `notification ${type}`; // expects .notification.success or .notification.error
+  element.style.display = 'block';
 }
 
 
