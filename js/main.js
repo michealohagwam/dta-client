@@ -1651,28 +1651,37 @@ function showNotification(element, message, type) {
 }
 
 // === Reset Password Page ===
-function initResetPasswordPage() {
+function initResetPage() {
   const form = document.getElementById('reset-password-form');
   const notification = document.getElementById('global-notification');
 
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token');
+  if (!form || !notification) return;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
 
   if (!token) {
-    notification.textContent = '❌ Invalid or missing token';
+    notification.textContent = '❌ Invalid reset link.';
     notification.className = 'notification error';
     notification.style.display = 'block';
-    form.style.display = 'none';
     return;
   }
 
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
-    const password = document.getElementById('reset-password').value.trim();
-    const confirm = document.getElementById('confirm-password').value.trim();
 
-    if (!password || password !== confirm) {
-      notification.textContent = '❌ Passwords do not match';
+    const password = document.getElementById('reset-password').value;
+    const confirm = document.getElementById('confirm-password').value;
+
+    if (!password || password.length < 6) {
+      notification.textContent = 'Password must be at least 6 characters.';
+      notification.className = 'notification error';
+      notification.style.display = 'block';
+      return;
+    }
+
+    if (password !== confirm) {
+      notification.textContent = 'Passwords do not match.';
       notification.className = 'notification error';
       notification.style.display = 'block';
       return;
@@ -1681,24 +1690,25 @@ function initResetPasswordPage() {
     try {
       const res = await fetch(`${API_URL}/api/users/reset-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ token, newPassword: password }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        notification.textContent = '✅ Password reset successful!';
+        notification.textContent = '✅ Password reset successful. You can now log in.';
         notification.className = 'notification success';
-        form.style.display = 'none';
       } else {
-        notification.textContent = data.message || '❌ Error resetting password.';
+        notification.textContent = data.message || '❌ Reset failed.';
         notification.className = 'notification error';
       }
 
       notification.style.display = 'block';
     } catch (err) {
-      notification.textContent = '❌ Network error';
+      notification.textContent = '❌ Network error. Please try again.';
       notification.className = 'notification error';
       notification.style.display = 'block';
     }
