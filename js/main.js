@@ -1658,24 +1658,24 @@ function showNotification(element, message, type) {
 
 
   // === Init Reset Page ===
-document.addEventListener('DOMContentLoaded', () => {
+// === Reset Password Page Logic ===
+function initResetPage() {
+  console.log('🔄 initResetPage loaded');
+
   const form = document.getElementById('reset-password-form');
   const newPassInput = document.getElementById('reset-password');
   const confirmInput = document.getElementById('confirm-password');
   const toggleIcons = document.querySelectorAll('.toggle-password');
 
-  console.log('🔄 initResetPage loaded');
-
   if (!form || !newPassInput || !confirmInput) {
-    console.warn('⚠️ Form or password fields missing');
+    console.warn('⚠️ Reset form or inputs not found.');
     return;
   }
 
-  // 👁️ Toggle password visibility for both fields
+  // 👁️ Eye toggle for both password fields
   toggleIcons.forEach(icon => {
     const targetId = icon.getAttribute('data-target');
     const input = document.getElementById(targetId);
-
     if (input) {
       icon.addEventListener('click', () => {
         const isVisible = input.type === 'text';
@@ -1685,11 +1685,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 🔐 Extract token and email from URL
+  // 🔐 Get token + email from URL
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
   const email = urlParams.get('email');
-
   console.log('🔐 Reset token:', token, '📧 Email:', email);
 
   if (!token || !email) {
@@ -1701,10 +1700,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // 📨 Handle password reset form submission
-  form.addEventListener('submit', async function (e) {
+  // 📨 Handle form submit
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const password = newPassInput.value;
     const confirm = confirmInput.value;
 
@@ -1743,7 +1741,6 @@ document.addEventListener('DOMContentLoaded', () => {
           duration: 3000,
         }).showToast();
 
-        // 🔐 Auto-login after successful reset
         const loginRes = await fetch('/api/users/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1759,7 +1756,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/dashboard.html';
           }, 1000);
         } else {
-          console.warn('⚠️ Auto-login failed:', loginData);
           Toastify({
             text: loginData.message || '❌ Auto-login failed. Please login manually.',
             backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
@@ -1767,7 +1763,6 @@ document.addEventListener('DOMContentLoaded', () => {
           }).showToast();
         }
       } else {
-        console.warn('⚠️ Password reset failed:', data);
         Toastify({
           text: data.message || '❌ Reset failed.',
           backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
@@ -1783,6 +1778,44 @@ document.addEventListener('DOMContentLoaded', () => {
       }).showToast();
     }
   });
+}
+
+
+
+// === Mobile Nav / Hamburger ===
+function initHamburgerMenu() {
+  const hamburger = document.querySelector('.hamburger');
+  const navMenu = document.querySelector('.nav-menu');
+
+  if (!hamburger || !navMenu) {
+    console.warn('Hamburger or nav-menu not found:', { hamburger, navMenu });
+    return;
+  }
+
+  hamburger.addEventListener('click', () => {
+    navMenu.classList.toggle('active');
+    hamburger.classList.toggle('active');
+  });
+}
+
+// === Master Init Based on <body data-page="..."> ===
+document.addEventListener('DOMContentLoaded', () => {
+  initHamburgerMenu();
+
+  const page = document.body.dataset.page;
+  switch (page) {
+    case 'reset':
+      initResetPage();
+      break;
+    case 'register':
+      initRegisterPage();
+      break;
+    case 'upgrade':
+      initUpgradePage();
+      break;
+    default:
+      console.warn(`No init function matched for: ${page}`);
+  }
 });
 
 
