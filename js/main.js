@@ -1568,7 +1568,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const newLevelSelect = document.getElementById('new-level');
   const notification = document.getElementById('upgrade-notification');
 
-  // Fetch user profile data
+  // Fetch profile
   fetch(`${apiBase}/profile`, {
     credentials: 'include'
   })
@@ -1586,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', () => {
       notification.classList.add('error');
     });
 
-  // Handle form submit
+  // Handle upgrade form
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -1597,7 +1597,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Submit upgrade request
     fetch(`${apiBase}/upgrade-request`, {
       method: 'POST',
       headers: {
@@ -1611,9 +1610,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return res.json();
       })
       .then(() => {
-        // Save upgrade level in sessionStorage
         sessionStorage.setItem('upgradeLevel', selectedLevel);
-        // Redirect to payment page
         window.location.href = 'deposit.html';
       })
       .catch(err => {
