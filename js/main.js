@@ -1564,30 +1564,30 @@ async function initDepositPage() {
 function initUpgradePage() {
   const form = document.getElementById('upgrade-form');
   const levelSelect = document.getElementById('new-level');
-  const upgradeNotification = document.getElementById('upgrade-notification');
-  const currentLevel = document.getElementById('current-level');
+  const notification = document.getElementById('upgrade-notification');
+  const currentLevelEl = document.getElementById('current-level');
+  const balanceEl = document.getElementById('available-balance');
 
-  if (!form || !levelSelect || !upgradeNotification || !currentLevel) {
-    console.warn('⚠️ Missing elements on upgrade page.');
+  if (!form || !levelSelect || !notification) {
+    console.info('ℹ️ Upgrade form not present on this page.');
     return;
   }
 
-  // Optional: Fetch current level from backend
+  // Optionally fetch current user info for dynamic content
   fetch('/api/user/profile')
     .then(res => res.json())
     .then(data => {
-      currentLevel.textContent = `Level ${data.level}`;
+      currentLevelEl.textContent = `Level ${data.level}`;
+      balanceEl.textContent = `₦${data.balance.toLocaleString()}`;
     })
-    .catch(() => {
-      currentLevel.textContent = `Level ?`;
-    });
+    .catch(err => console.warn('⚠️ Failed to load user info.', err));
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const newLevel = parseInt(levelSelect.value);
-    if (!newLevel) {
-      showNotification('⚠️ Please select a level.', 'error');
+    const selectedLevel = parseInt(levelSelect.value);
+    if (!selectedLevel) {
+      showNotification('⚠️ Please select a level before proceeding.', 'error');
       return;
     }
 
@@ -1595,37 +1595,38 @@ function initUpgradePage() {
       const res = await fetch('/api/user/upgrade-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: newLevel })
+        body: JSON.stringify({ level: selectedLevel })
       });
 
       const result = await res.json();
 
       if (!res.ok) {
-        showNotification(result.message || 'Failed to submit upgrade request.', 'error');
+        showNotification(result.message || '⚠️ Failed to submit upgrade request.', 'error');
         return;
       }
 
-      // Success: redirect to payment page or show info
       showNotification('✅ Upgrade request submitted. Redirecting to payment...', 'success');
 
       setTimeout(() => {
-        window.location.href = `/payment?requestId=${result.requestId}`;
-      }, 1500);
+        window.location.href = `/deposit.html?level=${selectedLevel}&requestId=${result.requestId}`;
+      }, 1200);
 
     } catch (err) {
-      showNotification('❌ An error occurred. Please try again later.', 'error');
+      console.error(err);
+      showNotification('❌ Something went wrong. Please try again.', 'error');
     }
   });
 
   function showNotification(message, type = 'info') {
-    upgradeNotification.textContent = message;
-    upgradeNotification.className = `notification ${type}`;
-    upgradeNotification.style.display = 'block';
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.style.display = 'block';
     setTimeout(() => {
-      upgradeNotification.style.display = 'none';
+      notification.style.display = 'none';
     }, 4000);
   }
 }
+
 
 
 // Logout Page initialization
