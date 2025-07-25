@@ -1560,6 +1560,74 @@ async function initDepositPage() {
     }
 }
 
+//Upgrade Page initialization
+function initUpgradePage() {
+  const form = document.getElementById('upgrade-form');
+  const levelSelect = document.getElementById('new-level');
+  const upgradeNotification = document.getElementById('upgrade-notification');
+  const currentLevel = document.getElementById('current-level');
+
+  if (!form || !levelSelect || !upgradeNotification || !currentLevel) {
+    console.warn('⚠️ Missing elements on upgrade page.');
+    return;
+  }
+
+  // Optional: Fetch current level from backend
+  fetch('/api/user/profile')
+    .then(res => res.json())
+    .then(data => {
+      currentLevel.textContent = `Level ${data.level}`;
+    })
+    .catch(() => {
+      currentLevel.textContent = `Level ?`;
+    });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const newLevel = parseInt(levelSelect.value);
+    if (!newLevel) {
+      showNotification('⚠️ Please select a level.', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/user/upgrade-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: newLevel })
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        showNotification(result.message || 'Failed to submit upgrade request.', 'error');
+        return;
+      }
+
+      // Success: redirect to payment page or show info
+      showNotification('✅ Upgrade request submitted. Redirecting to payment...', 'success');
+
+      setTimeout(() => {
+        window.location.href = `/payment?requestId=${result.requestId}`;
+      }, 1500);
+
+    } catch (err) {
+      showNotification('❌ An error occurred. Please try again later.', 'error');
+    }
+  });
+
+  function showNotification(message, type = 'info') {
+    upgradeNotification.textContent = message;
+    upgradeNotification.className = `notification ${type}`;
+    upgradeNotification.style.display = 'block';
+    setTimeout(() => {
+      upgradeNotification.style.display = 'none';
+    }, 4000);
+  }
+}
+
+
 // Logout Page initialization
 function initLogoutPage() {
     const logoutForm = document.getElementById('logout-form');
