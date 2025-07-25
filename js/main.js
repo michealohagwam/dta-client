@@ -1658,108 +1658,96 @@ function showNotification(element, message, type) {
 
 document.addEventListener('DOMContentLoaded', () => {
   // === Init Reset Page ===
-  const form = document.getElementById('reset-password-form');
-  const notification = document.getElementById('global-notification');
-  const newPassInput = document.getElementById('reset-password');
-  const toggleIcon = document.getElementById('toggle-password');
+function initResetPasswordPage() {
+  console.log("🔄 initResetPage loaded");
 
-  console.log('🔄 initResetPage loaded');
+  const resetForm = document.querySelector('#resetPasswordForm');
+  const newPasswordInput = document.querySelector('#newPassword');
+  const confirmPasswordInput = document.querySelector('#confirmPassword');
+  const toggleIcons = document.querySelectorAll('.toggle-password');
 
-  if (!form || !notification) {
-    console.warn('⚠️ Form or notification element missing');
-    return;
-  }
-
-  // 👁️ Toggle new password visibility
-  if (toggleIcon && newPassInput) {
-    toggleIcon.addEventListener('click', () => {
-      const isVisible = newPassInput.type === 'text';
-      newPassInput.type = isVisible ? 'password' : 'text';
-      toggleIcon.textContent = isVisible ? '👁️' : '🙈';
-    });
-  }
-
-  // 🧩 Get token and email from URL
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
-  const email = urlParams.get('email');
 
-  console.log('🔐 Reset token:', token, '📧 Email:', email);
+  console.log("🔐 Reset token:", token);
 
-  if (!token || !email) {
-    notification.textContent = '❌ Invalid reset link.';
-    notification.className = 'notification error';
-    notification.style.display = 'block';
+  if (!token || !resetForm || !newPasswordInput || !confirmPasswordInput) {
+    console.warn("❌ Required elements or token missing");
     return;
   }
 
-  // 📨 Handle form submit
-  form.addEventListener('submit', async function (e) {
+  toggleIcons.forEach(icon => {
+    icon.addEventListener('click', function () {
+      const targetInputId = this.getAttribute('data-target');
+      const input = document.querySelector(`#${targetInputId}`);
+      if (input) {
+        input.type = input.type === 'password' ? 'text' : 'password';
+        this.classList.toggle('fa-eye-slash');
+        this.classList.toggle('fa-eye');
+      }
+    });
+  });
+
+  resetForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const newPassword = newPasswordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
 
-    const password = newPassInput.value;
-    const confirm = document.getElementById('confirm-password').value;
-
-    if (!password || password.length < 6) {
-      notification.textContent = 'Password must be at least 6 characters.';
-      notification.className = 'notification error';
-      notification.style.display = 'block';
-      return;
-    }
-
-    if (password !== confirm) {
-      notification.textContent = 'Passwords do not match.';
-      notification.className = 'notification error';
-      notification.style.display = 'block';
+    if (newPassword !== confirmPassword) {
+      Toastify({
+        text: "Passwords do not match!",
+        backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+        duration: 3000,
+      }).showToast();
       return;
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/users/reset-password`, {
+      const res = await fetch('/api/users/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword: password }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token, newPassword }),
       });
 
       const data = await res.json();
-      console.log('🔁 Reset response:', data);
 
       if (res.ok) {
-        notification.textContent = '✅ Password reset successful. Logging you in...';
-        notification.className = 'notification success';
-        notification.style.display = 'block';
+        Toastify({
+          text: "✅ Password reset successfully!",
+          backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+          duration: 3000,
+        }).showToast();
 
-        // 🔐 Auto-login
-        const loginRes = await fetch(`${API_URL}/api/users/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-
-        const loginData = await loginRes.json();
-
-        if (loginRes.ok && loginData.token) {
-          localStorage.setItem('dailytask_user', JSON.stringify(loginData));
-          setTimeout(() => {
-            window.location.href = '/dashboard.html';
-          }, 1000);
-        } else {
-          notification.textContent = loginData.message || '❌ Auto-login failed. Please login manually.';
-          notification.className = 'notification error';
-          notification.style.display = 'block';
-        }
+        // Optionally redirect or auto-login
+        setTimeout(() => {
+          window.location.href = '/login.html'; // or auto-login if token returned
+        }, 2000);
       } else {
-        notification.textContent = data.message || '❌ Reset failed.';
-        notification.className = 'notification error';
-        notification.style.display = 'block';
+        Toastify({
+          text: `❌ ${data.message || 'Reset failed'}`,
+          backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+          duration: 4000,
+        }).showToast();
       }
     } catch (err) {
-      console.error('❌ Error during reset/login:', err);
-      notification.textContent = '❌ Network error. Please try again.';
-      notification.className = 'notification error';
-      notification.style.display = 'block';
+      console.error("Reset error:", err);
+      Toastify({
+        text: "Something went wrong!",
+        backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+        duration: 3000,
+      }).showToast();
     }
   });
+}
+
+// 🔥 Make sure this runs on reset-password.html
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.pathname.includes('reset-password.html')) {
+    initResetPasswordPage();
+  }
+});
 });
 
 
