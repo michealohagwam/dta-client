@@ -1656,33 +1656,48 @@ function showNotification(element, message, type) {
   element.style.display = 'block';
 }
 
-// === Reset Password Page ===
-function initResetPage() {
+document.addEventListener('DOMContentLoaded', () => {
+  // === Init Reset Page ===
   const form = document.getElementById('reset-password-form');
   const notification = document.getElementById('global-notification');
+  const newPassInput = document.getElementById('reset-password');
+  const toggleIcon = document.getElementById('toggle-password');
 
   console.log('🔄 initResetPage loaded');
 
   if (!form || !notification) {
-    console.warn('⚠️ Form or notification element missing in reset page');
+    console.warn('⚠️ Form or notification element missing');
     return;
   }
 
+  // 👁️ Toggle new password visibility
+  if (toggleIcon && newPassInput) {
+    toggleIcon.addEventListener('click', () => {
+      const isVisible = newPassInput.type === 'text';
+      newPassInput.type = isVisible ? 'password' : 'text';
+      toggleIcon.textContent = isVisible ? '👁️' : '🙈';
+    });
+  }
+
+  // 🧩 Get token and email from URL
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
-  console.log('🔐 Token from URL:', token);
+  const email = urlParams.get('email');
 
-  if (!token) {
+  console.log('🔐 Reset token:', token, '📧 Email:', email);
+
+  if (!token || !email) {
     notification.textContent = '❌ Invalid reset link.';
     notification.className = 'notification error';
     notification.style.display = 'block';
     return;
   }
 
+  // 📨 Handle form submit
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const password = document.getElementById('reset-password').value;
+    const password = newPassInput.value;
     const confirm = document.getElementById('confirm-password').value;
 
     if (!password || password.length < 6) {
@@ -1700,7 +1715,6 @@ function initResetPage() {
     }
 
     try {
-      console.log('📡 Sending password reset request...');
       const res = await fetch(`${API_URL}/api/users/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1708,26 +1722,45 @@ function initResetPage() {
       });
 
       const data = await res.json();
-      console.log('🔁 Server response:', data);
+      console.log('🔁 Reset response:', data);
 
       if (res.ok) {
-        notification.textContent = '✅ Password reset successful. You can now log in.';
+        notification.textContent = '✅ Password reset successful. Logging you in...';
         notification.className = 'notification success';
-        form.style.display = 'none';
+        notification.style.display = 'block';
+
+        // 🔐 Auto-login
+        const loginRes = await fetch(`${API_URL}/api/users/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const loginData = await loginRes.json();
+
+        if (loginRes.ok && loginData.token) {
+          localStorage.setItem('dailytask_user', JSON.stringify(loginData));
+          setTimeout(() => {
+            window.location.href = '/dashboard.html';
+          }, 1000);
+        } else {
+          notification.textContent = loginData.message || '❌ Auto-login failed. Please login manually.';
+          notification.className = 'notification error';
+          notification.style.display = 'block';
+        }
       } else {
         notification.textContent = data.message || '❌ Reset failed.';
         notification.className = 'notification error';
+        notification.style.display = 'block';
       }
-
-      notification.style.display = 'block';
     } catch (err) {
-      console.error('❌ Network or server error during reset:', err);
+      console.error('❌ Error during reset/login:', err);
       notification.textContent = '❌ Network error. Please try again.';
       notification.className = 'notification error';
       notification.style.display = 'block';
     }
   });
-}
+});
 
 
 // === Helper: Toast or inline notification ===

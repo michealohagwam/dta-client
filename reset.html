@@ -15,19 +15,26 @@
 </header>
 
 <section class="auth-form">
-  <h1>Reset Your Password</h1>
-  <form id="reset-password-form" class="withdraw-form">
-    <div class="form-group">
-      <input type="password" id="reset-password" placeholder="New password" required />
-    </div>
-    <div class="form-group">
-      <input type="password" id="confirm-password" placeholder="Confirm new password" required />
-    </div>
-    <div class="form-group">
-      <button type="submit" class="btn cta-btn">Reset Password</button>
-    </div>
-  </form>
-  <div id="global-notification" class="notification" style="display:none;"></div>
+  <h1>Enter your new password below to reset it.</h1>
+ <form id="reset-password-form" class="withdraw-form">
+  <div class="form-group" style="position: relative;">
+    <input type="password" id="reset-password" placeholder="New password" required />
+    <span id="toggle-password" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer;">
+      👁️
+    </span>
+  </div>
+
+  <div class="form-group">
+    <input type="password" id="confirm-password" placeholder="Confirm new password" required />
+  </div>
+
+  <div class="form-group">
+    <button type="submit" class="btn cta-btn">Reset Password</button>
+  </div>
+</form>
+
+
+    <div id="global-notification" class="notification" style="display:none;"></div>
 </section>
 
 <footer>
