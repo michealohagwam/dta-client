@@ -49,20 +49,24 @@ function getToken() {
 
 
 // === Initialize hamburger menu toggle (used on public pages only) ===
+document.addEventListener('DOMContentLoaded', () => {
+    initHamburgerMenu();
+});
+
 function initHamburgerMenu() {
     const hamburger = document.querySelector('.hamburger');
     const navMenu = document.querySelector('.nav-menu');
 
     if (!hamburger || !navMenu) {
-        // Expected on pages like dashboard — no need to notify user
-        // Uncomment below only during dev if needed
-        // console.info('ℹ️ Hamburger menu not present on this page. Skipping init.');
+        // Only log for development; remove this block in production
+        console.info('ℹ️ Hamburger menu not present on this page. Skipping init.');
         return;
     }
 
     const toggleMenu = () => {
         hamburger.classList.toggle('active');
         navMenu.classList.toggle('active');
+        console.log('✅ Hamburger toggled. Menu active:', navMenu.classList.contains('active'));
     };
 
     hamburger.addEventListener('click', toggleMenu);
@@ -70,6 +74,8 @@ function initHamburgerMenu() {
         e.preventDefault();
         toggleMenu();
     });
+
+    console.log('✅ Hamburger menu initialized.');
 }
 
 
