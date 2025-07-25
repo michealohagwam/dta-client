@@ -1656,48 +1656,71 @@ function showNotification(element, message, type) {
   element.style.display = 'block';
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // === Init Reset Page ===
-function initResetPasswordPage() {
-  console.log("🔄 initResetPage loaded");
 
-  const resetForm = document.querySelector('#resetPasswordForm');
-  const newPasswordInput = document.querySelector('#newPassword');
-  const confirmPasswordInput = document.querySelector('#confirmPassword');
+  // === Init Reset Page ===
+  document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('reset-password-form');
+  const newPassInput = document.getElementById('reset-password');
+  const confirmInput = document.getElementById('confirm-password');
   const toggleIcons = document.querySelectorAll('.toggle-password');
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('token');
+  console.log('🔄 initResetPage loaded');
 
-  console.log("🔐 Reset token:", token);
-
-  if (!token || !resetForm || !newPasswordInput || !confirmPasswordInput) {
-    console.warn("❌ Required elements or token missing");
+  if (!form || !newPassInput || !confirmInput) {
+    console.warn('⚠️ Form or password fields missing');
     return;
   }
 
+  // 👁️ Toggle visibility for both password inputs
   toggleIcons.forEach(icon => {
-    icon.addEventListener('click', function () {
-      const targetInputId = this.getAttribute('data-target');
-      const input = document.querySelector(`#${targetInputId}`);
+    icon.addEventListener('click', () => {
+      const targetId = icon.getAttribute('data-target');
+      const input = document.getElementById(targetId);
       if (input) {
-        input.type = input.type === 'password' ? 'text' : 'password';
-        this.classList.toggle('fa-eye-slash');
-        this.classList.toggle('fa-eye');
+        const isVisible = input.type === 'text';
+        input.type = isVisible ? 'password' : 'text';
+        icon.textContent = isVisible ? '👁️' : '🙈';
       }
     });
   });
 
-  resetForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const newPassword = newPasswordInput.value;
-    const confirmPassword = confirmPasswordInput.value;
+  // 🧩 Get token and email from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  const email = urlParams.get('email');
 
-    if (newPassword !== confirmPassword) {
+  console.log('🔐 Reset token:', token, '📧 Email:', email);
+
+  if (!token || !email) {
+    Toastify({
+      text: "❌ Invalid or expired reset link.",
+      backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+      duration: 4000,
+    }).showToast();
+    return;
+  }
+
+  // 📨 Handle form submit
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const password = newPassInput.value;
+    const confirm = confirmInput.value;
+
+    if (!password || password.length < 6) {
       Toastify({
-        text: "Passwords do not match!",
+        text: "Password must be at least 6 characters.",
         backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
-        duration: 3000,
+        duration: 4000,
+      }).showToast();
+      return;
+    }
+
+    if (password !== confirm) {
+      Toastify({
+        text: "Passwords do not match.",
+        backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+        duration: 4000,
       }).showToast();
       return;
     }
@@ -1705,49 +1728,57 @@ function initResetPasswordPage() {
     try {
       const res = await fetch('/api/users/reset-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token, newPassword }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword: password }),
       });
 
       const data = await res.json();
+      console.log('🔁 Reset response:', data);
 
       if (res.ok) {
         Toastify({
-          text: "✅ Password reset successfully!",
+          text: "✅ Password reset successful. Logging you in...",
           backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
           duration: 3000,
         }).showToast();
 
-        // Optionally redirect or auto-login
-        setTimeout(() => {
-          window.location.href = '/login.html'; // or auto-login if token returned
-        }, 2000);
+        // 🔐 Auto-login
+        const loginRes = await fetch('/api/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const loginData = await loginRes.json();
+
+        if (loginRes.ok && loginData.token) {
+          localStorage.setItem('dailytask_user', JSON.stringify(loginData));
+          setTimeout(() => {
+            window.location.href = '/dashboard.html';
+          }, 1000);
+        } else {
+          Toastify({
+            text: loginData.message || '❌ Auto-login failed. Please login manually.',
+            backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+            duration: 4000,
+          }).showToast();
+        }
       } else {
         Toastify({
-          text: `❌ ${data.message || 'Reset failed'}`,
+          text: data.message || '❌ Reset failed.',
           backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
           duration: 4000,
         }).showToast();
       }
     } catch (err) {
-      console.error("Reset error:", err);
+      console.error('❌ Error during reset/login:', err);
       Toastify({
-        text: "Something went wrong!",
+        text: "❌ Network error. Please try again.",
         backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
-        duration: 3000,
+        duration: 4000,
       }).showToast();
     }
   });
-}
-
-// 🔥 Make sure this runs on reset-password.html
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.location.pathname.includes('reset-password.html')) {
-    initResetPasswordPage();
-  }
-});
 });
 
 
