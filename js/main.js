@@ -1561,6 +1561,72 @@ async function initDepositPage() {
 }
 
 
+document.addEventListener('DOMContentLoaded', () => {
+  const apiBase = 'https://your-backend-name.onrender.com/api/user';
+
+  const currentLevel = document.getElementById('current-level');
+  const availableBalance = document.getElementById('available-balance');
+  const form = document.getElementById('upgrade-form');
+  const newLevelSelect = document.getElementById('new-level');
+  const notification = document.getElementById('upgrade-notification');
+
+  // Fetch user profile data
+  fetch(`${apiBase}/profile`, {
+    credentials: 'include'
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to load profile.");
+      return res.json();
+    })
+    .then(data => {
+      currentLevel.textContent = `Level ${data.level}`;
+      availableBalance.textContent = `₦${data.balance.toLocaleString()}`;
+    })
+    .catch(err => {
+      console.error('Profile load error:', err.message);
+      notification.textContent = "Failed to load profile data.";
+      notification.classList.add('error');
+    });
+
+  // Handle form submit
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const selectedLevel = newLevelSelect.value;
+    if (!selectedLevel) {
+      notification.textContent = "Please select a level.";
+      notification.classList.add('error');
+      return;
+    }
+
+    // Submit upgrade request
+    fetch(`${apiBase}/upgrade-request`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({ newLevel: selectedLevel })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Upgrade request failed.");
+        return res.json();
+      })
+      .then(() => {
+        // Save upgrade level in sessionStorage
+        sessionStorage.setItem('upgradeLevel', selectedLevel);
+        // Redirect to payment page
+        window.location.href = 'deposit.html';
+      })
+      .catch(err => {
+        console.error('Upgrade error:', err.message);
+        notification.textContent = "Upgrade failed. Please try again.";
+        notification.classList.add('error');
+      });
+  });
+});
+
+
 // Logout Page initialization
 function initLogoutPage() {
     const logoutForm = document.getElementById('logout-form');

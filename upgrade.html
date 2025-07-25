@@ -6,13 +6,11 @@
   <title>Upgrade Your Level | DailyTask Academy</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
-<body data-page="dashboard">
+<body data-page="upgrade">
   <div id="global-notification" class="notification" style="display: none;"></div>
 
-  <!-- HEADER -->
   <header class="navbar">
     <div class="logo">
       <a href="index.html">DailyTask Academy</a>
@@ -31,32 +29,22 @@
 
   <div class="dashboard">
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <h2><i class="fas fa-bars sidebar-toggle"></i> <span>Dashboard Menu</span></h2>
-        <div class="user-info">
-          <div>
-            <span id="sidebar-user-name">Micheal Ohagwam</span>
-            <span id="sidebar-user-level">Level 1</span>
-          </div>
-        </div>
-      </div>
       <nav class="sidebar-menu">
-        <a href="dashboard.html"><i class="fas fa-tasks"></i> <span>Tasks</span></a>
-        <a href="balance.html"><i class="fas fa-wallet"></i> <span>Balance</span></a>
-        <a href="referrals.html"><i class="fas fa-users"></i> <span>Referrals</span></a>
-        <a href="upgrade.html" class="active"><i class="fas fa-level-up-alt"></i> <span>Upgrade Your Level</span></a>
-        <a href="withdraw.html"><i class="fas fa-money"></i> <span>Withdraw</span></a>
-        <a href="profile.html"><i class="fas fa-user"></i> <span>Profile</span></a>
-        <a href="transactions.html"><i class="fas fa-exchange-alt"></i> <span>Transactions</span></a>
-        <a href="logout.html" class="logout"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a>
+        <a href="dashboard.html"><i class="fas fa-tasks"></i> Tasks</a>
+        <a href="balance.html"><i class="fas fa-wallet"></i> Balance</a>
+        <a href="referrals.html"><i class="fas fa-users"></i> Referrals</a>
+        <a href="upgrade.html" class="active"><i class="fas fa-level-up-alt"></i> Upgrade</a>
+        <a href="withdraw.html"><i class="fas fa-money"></i> Withdraw</a>
+        <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+        <a href="transactions.html"><i class="fas fa-exchange-alt"></i> Transactions</a>
+        <a href="logout.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
       </nav>
     </aside>
 
     <main class="main-content">
       <h1>Upgrade Your Level</h1>
-      <p>Upgrade your account to unlock more features and benefits.</p>
+      <p>Upgrade your account to unlock more benefits.</p>
 
-      <!-- Upgrade Section -->
       <section class="upgrade-section">
         <h2>Choose Your New Level</h2>
         <div class="upgrade-card">
@@ -64,7 +52,7 @@
             <i class="fas fa-user"></i>
             <div>
               <span class="label">Current Level</span>
-              <span class="value" id="current-level">Loading...</span>
+              <span class="value" id="current-level">Level 1</span>
             </div>
           </div>
           <div class="upgrade-item">
@@ -75,109 +63,32 @@
             </div>
           </div>
         </div>
-        <form id="upgrade-form" class="withdraw-form">
+
+        <form id="upgrade-form">
           <div class="form-group">
             <label for="new-level">Select New Level</label>
-            <select id="new-level" class="level-dropdown" required>
+            <select id="new-level" required>
               <option value="" disabled selected>Choose a level</option>
-              <option value="1">Level 1 - ₦15,000</option>
               <option value="2">Level 2 - ₦30,000</option>
               <option value="3">Level 3 - ₦60,000</option>
               <option value="4">Level 4 - ₦120,000</option>
-              <option value="5">Level 5 - ₦240,000</option>
-              <option value="6">Level 6 - ₦480,000</option>
-              <option value="7">Level 7 - ₦960,000</option>
-              <option value="8">Level 8 - ₦1,920,000</option>
-              <option value="9">Level 9 - ₦3,840,000</option>
-              <option value="10">Level 10 - ₦7,680,000</option>
+              <!-- add more levels as needed -->
             </select>
           </div>
           <div class="form-group">
             <button type="submit" class="btn cta-btn"><i class="fas fa-level-up-alt"></i> Proceed to Payment</button>
           </div>
         </form>
+
         <div id="upgrade-notification" class="notification"></div>
       </section>
     </main>
   </div>
 
-  <!-- FOOTER -->
   <footer>
     <p>© <span id="current-year">2025</span> DailyTask Academy. All rights reserved.</p>
-    <p><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms & Conditions</a> | <a href="disclaimer.html">Disclaimer</a></p>
   </footer>
 
-  <!-- JavaScript Logic -->
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const form = document.getElementById('upgrade-form');
-      const levelSelect = document.getElementById('new-level');
-      const notification = document.getElementById('upgrade-notification');
-      const currentLevelEl = document.getElementById('current-level');
-      const balanceEl = document.getElementById('available-balance');
-
-      // Load user info (current level and balance)
-      fetch('/api/user/profile')
-        .then(res => res.json())
-        .then(data => {
-          currentLevelEl.textContent = `Level ${data.level}`;
-          balanceEl.textContent = `₦${data.balance.toLocaleString()}`;
-          document.getElementById('header-user-name').textContent = `Welcome, ${data.name}`;
-          document.getElementById('sidebar-user-name').textContent = data.name;
-          document.getElementById('sidebar-user-level').textContent = `Level ${data.level}`;
-        })
-        .catch(err => {
-          console.error('Failed to load user data', err);
-          currentLevelEl.textContent = "Unavailable";
-        });
-
-      form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const selectedLevel = parseInt(levelSelect.value);
-
-        if (!selectedLevel) {
-          showNotification("⚠️ Please select a level to upgrade.", "error");
-          return;
-        }
-
-        try {
-          const res = await fetch('/api/user/upgrade-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ level: selectedLevel })
-          });
-
-          const result = await res.json();
-
-          if (!res.ok) {
-            showNotification(result.message || '⚠️ Upgrade request failed.', 'error');
-            return;
-          }
-
-          showNotification("✅ Upgrade request submitted. Redirecting to payment...", "success");
-
-          setTimeout(() => {
-            window.location.href = `/deposit.html?level=${selectedLevel}&requestId=${result.requestId}`;
-          }, 1500);
-
-        } catch (err) {
-          console.error('Upgrade error:', err);
-          showNotification("❌ Something went wrong. Please try again.", "error");
-        }
-      });
-
-      function showNotification(message, type = 'info') {
-        notification.textContent = message;
-        notification.className = `notification ${type}`;
-        notification.style.display = 'block';
-        setTimeout(() => {
-          notification.style.display = 'none';
-        }, 4000);
-      }
-
-      // Set footer year
-      document.getElementById('current-year').textContent = new Date().getFullYear();
-    });
-  </script>
+  <script src="./js/upgrade.js"></script>
 </body>
 </html>
