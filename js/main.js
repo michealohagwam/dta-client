@@ -1562,8 +1562,6 @@ async function initDepositPage() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-  const apiBase = 'https://your-backend-name.onrender.com/api/user';
-
   const currentLevel = document.getElementById('current-level');
   const availableBalance = document.getElementById('available-balance');
   const form = document.getElementById('upgrade-form');
