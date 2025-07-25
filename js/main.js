@@ -1657,25 +1657,46 @@ function showNotification(element, message, type) {
 }
 
 
-  // === Init Reset Page ===
-document.addEventListener('DOMContentLoaded', () => {
+ // === Utility ===
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// === Init Hamburger Menu ===
+function initHamburgerMenu() {
+  const hamburger = document.querySelector('.hamburger');
+  const navMenu = document.querySelector('.nav-menu');
+  if (!hamburger || !navMenu) {
+    console.warn("Hamburger or nav-menu not found:", { hamburger, navMenu });
+    return;
+  }
+
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('active');
+    navMenu.classList.toggle('active');
+  });
+}
+window.initHamburgerMenu = initHamburgerMenu;
+
+
+// === Init Reset Page ===
+function initResetPage() {
+  console.log('🔄 initResetPage loaded');
+
   const form = document.getElementById('reset-password-form');
   const newPassInput = document.getElementById('reset-password');
   const confirmInput = document.getElementById('confirm-password');
   const toggleIcons = document.querySelectorAll('.toggle-password');
-
-  console.log('🔄 initResetPage loaded');
 
   if (!form || !newPassInput || !confirmInput) {
     console.warn('⚠️ Form or password fields missing');
     return;
   }
 
-  // 👁️ Toggle password visibility for both fields
+  // 👁️ Toggle password visibility
   toggleIcons.forEach(icon => {
     const targetId = icon.getAttribute('data-target');
     const input = document.getElementById(targetId);
-
     if (input) {
       icon.addEventListener('click', () => {
         const isVisible = input.type === 'text';
@@ -1685,33 +1706,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 🔐 Extract token and email from URL
+  // 🔐 Extract token and email
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
   const email = urlParams.get('email');
-
   console.log('🔐 Reset token:', token, '📧 Email:', email);
 
   if (!token || !email) {
     Toastify({
       text: "❌ Invalid or expired reset link.",
-      backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+      style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" },
       duration: 4000,
     }).showToast();
     return;
   }
 
-  // 📨 Handle password reset form submission
+  // 📨 Submit password reset
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
-
     const password = newPassInput.value;
     const confirm = confirmInput.value;
 
     if (!password || password.length < 6) {
       Toastify({
         text: "Password must be at least 6 characters.",
-        backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+        style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" },
         duration: 4000,
       }).showToast();
       return;
@@ -1720,7 +1739,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (password !== confirm) {
       Toastify({
         text: "Passwords do not match.",
-        backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+        style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" },
         duration: 4000,
       }).showToast();
       return;
@@ -1739,11 +1758,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         Toastify({
           text: "✅ Password reset successful. Logging you in...",
-          backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+          style: { background: "linear-gradient(to right, #00b09b, #96c93d)" },
           duration: 3000,
         }).showToast();
 
-        // 🔐 Auto-login after successful reset
+        // Auto-login
         const loginRes = await fetch('/api/users/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1759,18 +1778,16 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/dashboard.html';
           }, 1000);
         } else {
-          console.warn('⚠️ Auto-login failed:', loginData);
           Toastify({
             text: loginData.message || '❌ Auto-login failed. Please login manually.',
-            backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+            style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" },
             duration: 4000,
           }).showToast();
         }
       } else {
-        console.warn('⚠️ Password reset failed:', data);
         Toastify({
           text: data.message || '❌ Reset failed.',
-          backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+          style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" },
           duration: 4000,
         }).showToast();
       }
@@ -1778,21 +1795,27 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('❌ Error during reset/login:', err);
       Toastify({
         text: "❌ Network error. Please try again.",
-        backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+        style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" },
         duration: 4000,
       }).showToast();
     }
   });
-});
-
-
-
-// === Helper: Toast or inline notification ===
-function showNotification(element, message, type) {
-  element.textContent = message;
-  element.className = `notification ${type}`; // expects .notification.success or .notification.error
-  element.style.display = 'block';
 }
+window.initResetPage = initResetPage;
+
+// === Global Init ===
+document.addEventListener('DOMContentLoaded', () => {
+  const page = document.body.dataset.page;
+  const initFunc = window[`init${capitalize(page)}Page`];
+
+  if (typeof initFunc === 'function') {
+    initFunc();
+  } else {
+    console.warn(`No init function matched for: ${page}`);
+  }
+
+  initHamburgerMenu();
+});
 
 
 // Transactions Page initialization
