@@ -1706,13 +1706,12 @@ function initResetPage() {
     }
   });
 
-  // 🔐 Extract token and email
+  // 🔐 Extract token from URL
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
-  const email = urlParams.get('email');
-  console.log('🔐 Reset token:', token, '📧 Email:', email);
+  console.log('🔐 Reset token:', token);
 
-  if (!token || !email) {
+  if (!token) {
     Toastify({
       text: "❌ Invalid or expired reset link.",
       style: { background: "linear-gradient(to right, #ff5f6d, #ffc371)" },
@@ -1762,11 +1761,11 @@ function initResetPage() {
           duration: 3000,
         }).showToast();
 
-        // Auto-login
+        // Auto-login using returned email
         const loginRes = await fetch('/api/users/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email: data.email, password }),
         });
 
         const loginData = await loginRes.json();
@@ -1803,19 +1802,6 @@ function initResetPage() {
 }
 window.initResetPage = initResetPage;
 
-// === Global Init ===
-document.addEventListener('DOMContentLoaded', () => {
-  const page = document.body.dataset.page;
-  const initFunc = window[`init${capitalize(page)}Page`];
-
-  if (typeof initFunc === 'function') {
-    initFunc();
-  } else {
-    console.warn(`No init function matched for: ${page}`);
-  }
-
-  initHamburgerMenu();
-});
 
 
 // Transactions Page initialization
