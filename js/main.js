@@ -1658,7 +1658,7 @@ function showNotification(element, message, type) {
 
 
   // === Init Reset Page ===
-  document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('reset-password-form');
   const newPassInput = document.getElementById('reset-password');
   const confirmInput = document.getElementById('confirm-password');
@@ -1671,20 +1671,21 @@ function showNotification(element, message, type) {
     return;
   }
 
-  // 👁️ Toggle visibility for both password inputs
+  // 👁️ Toggle password visibility for both fields
   toggleIcons.forEach(icon => {
-    icon.addEventListener('click', () => {
-      const targetId = icon.getAttribute('data-target');
-      const input = document.getElementById(targetId);
-      if (input) {
+    const targetId = icon.getAttribute('data-target');
+    const input = document.getElementById(targetId);
+
+    if (input) {
+      icon.addEventListener('click', () => {
         const isVisible = input.type === 'text';
         input.type = isVisible ? 'password' : 'text';
         icon.textContent = isVisible ? '👁️' : '🙈';
-      }
-    });
+      });
+    }
   });
 
-  // 🧩 Get token and email from URL
+  // 🔐 Extract token and email from URL
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
   const email = urlParams.get('email');
@@ -1700,7 +1701,7 @@ function showNotification(element, message, type) {
     return;
   }
 
-  // 📨 Handle form submit
+  // 📨 Handle password reset form submission
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -1742,7 +1743,7 @@ function showNotification(element, message, type) {
           duration: 3000,
         }).showToast();
 
-        // 🔐 Auto-login
+        // 🔐 Auto-login after successful reset
         const loginRes = await fetch('/api/users/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1750,6 +1751,7 @@ function showNotification(element, message, type) {
         });
 
         const loginData = await loginRes.json();
+        console.log('🔐 Login response:', loginData);
 
         if (loginRes.ok && loginData.token) {
           localStorage.setItem('dailytask_user', JSON.stringify(loginData));
@@ -1757,6 +1759,7 @@ function showNotification(element, message, type) {
             window.location.href = '/dashboard.html';
           }, 1000);
         } else {
+          console.warn('⚠️ Auto-login failed:', loginData);
           Toastify({
             text: loginData.message || '❌ Auto-login failed. Please login manually.',
             backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
@@ -1764,6 +1767,7 @@ function showNotification(element, message, type) {
           }).showToast();
         }
       } else {
+        console.warn('⚠️ Password reset failed:', data);
         Toastify({
           text: data.message || '❌ Reset failed.',
           backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
