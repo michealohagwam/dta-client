@@ -47,32 +47,37 @@ function getToken() {
     return localStorage.getItem('token');
 }
 
-// Initialize hamburger menu toggle (used on all pages)
+
+// === Initialize hamburger menu toggle (used on public pages only) ===
+document.addEventListener('DOMContentLoaded', () => {
+    initHamburgerMenu();
+});
+
 function initHamburgerMenu() {
     const hamburger = document.querySelector('.hamburger');
     const navMenu = document.querySelector('.nav-menu');
-    if (hamburger && navMenu) {
-        const toggleMenu = () => {
-            hamburger.classList.toggle('active');
-            navMenu.classList.toggle('active');
-            console.log('Hamburger toggled:', navMenu.classList.contains('active'));
-        };
-        hamburger.addEventListener('click', toggleMenu);
-        hamburger.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            toggleMenu();
-        });
-    } else {
-        console.error('Hamburger or nav-menu not found:', { hamburger, navMenu });
-        const globalNotification = document.getElementById('global-notification');
-        if (globalNotification) {
-            globalNotification.textContent = 'Navigation menu failed to load. Please refresh.';
-            globalNotification.classList.add('error');
-            globalNotification.style.display = 'block';
-            setTimeout(() => globalNotification.style.display = 'none', 3000);
-        }
+
+    if (!hamburger || !navMenu) {
+        // Only log for development; remove this block in production
+        console.info('ℹ️ Hamburger menu not present on this page. Skipping init.');
+        return;
     }
+
+    const toggleMenu = () => {
+        hamburger.classList.toggle('active');
+        navMenu.classList.toggle('active');
+        console.log('✅ Hamburger toggled. Menu active:', navMenu.classList.contains('active'));
+    };
+
+    hamburger.addEventListener('click', toggleMenu);
+    hamburger.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        toggleMenu();
+    });
+
+    console.log('✅ Hamburger menu initialized.');
 }
+
 
 // Dynamically update the footer year (used on all pages)
 function updateFooterYear() {
